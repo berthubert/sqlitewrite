@@ -6,6 +6,7 @@
 #include <thread>
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <SQLiteCpp/VariadicBind.h>
+#include <iostream>
 
 class SQLiteWriter
 {
@@ -25,10 +26,12 @@ public:
   void addValue(const std::initializer_list<std::pair<const char*, var_t>>& values);
   ~SQLiteWriter()
   {
+    //    std::cerr<<"Destructor called"<<std::endl;
     d_pleasequit=true;
     d_thread.join();
+    //    std::cerr<<"Our thread ended"<<std::endl;
     if(d_transaction) {
-      //      cerr<<"Had open transaction"<<endl;
+      //      std::cerr<<"Had open transaction" << std::endl;
       commit();
     }
     if(d_statement)

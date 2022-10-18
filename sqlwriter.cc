@@ -33,6 +33,7 @@ void SQLiteWriter::commitThread()
     }
     n++;
   }
+  //  cerr<<"Thread exiting"<<endl;
 }
 
 bool SQLiteWriter::haveColumn(std::string_view name)
@@ -109,8 +110,6 @@ void SQLiteWriter::addValue(const initializer_list<std::pair<const char*, var_t>
   int n = 1;
   for(const auto& p : values) {
     std::visit([this, &n](auto&& arg) {
-      using T = std::decay_t<decltype(arg)>;
-      //            cerr<<"   Appending "<<arg<<endl;
       d_statement->bind(n, arg);
     }, p.second);
     n++;
