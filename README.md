@@ -13,14 +13,22 @@ sqw.addValue({{"timestamp", 1234567890}});
 
 This will create `example.sqlite3` if needed. Also, if needed it will create
 a table called `data`. The sqlite3 file is set to WAL mode, the table is set
-to STRICT mode.
+to STRICT mode:
+
+```
+sqlite> PRAGMA journal_mode;
+wal
+
+sqlite> .schema
+CREATE TABLE data ( pief INT , "poef" REAL, "paf" TEXT, "timestamp" INT) STRICT;
+```
 
 The `addValue()` method can be used to pass an arbitrary number of fields.
 Columns will automatically be generated in the table on their first use. 
 
 SQLiteWriter batches all writes in transactions. The transaction is cycled
 every second. Because WAL mode is used, readers can be active without
-interruption on the file.
+interrupting writes to the file.
 
 Prepared statements are automatically created and reused as long as the same
 fields are passed to `addValue()`. If different fields are passed, a new
