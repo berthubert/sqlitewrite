@@ -37,5 +37,13 @@ prepared statement is made.
 The code above does around 500k inserts/second. This could likely be
 improved further, but is likely suffices for most usecases.
 
+# Compiling
+```
+git clone https://github.com/berthubert/sqlitewrite.git --recurse
+cd sqlitewrite
+cmake .
+make
+```
+
 # Status
 Proof of concept.
