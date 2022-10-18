@@ -29,7 +29,7 @@ public:
     d_thread.join();
     if(d_transaction) {
       //      cerr<<"Had open transaction"<<endl;
-      d_transaction.reset();
+      commit();
     }
     if(d_statement)
       d_statement.reset();
