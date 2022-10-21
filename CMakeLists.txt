@@ -13,12 +13,8 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
-
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/ext/SQLiteCpp)
-
 add_executable(demo demo.cc sqlwriter.cc)
 target_link_libraries(demo
-  SQLiteCpp
   sqlite3
   pthread
   dl
