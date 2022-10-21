@@ -34,16 +34,20 @@ Prepared statements are automatically created and reused as long as the same
 fields are passed to `addValue()`. If different fields are passed, a new
 prepared statement is made.
 
-The code above does around 500k inserts/second. This could likely be
-improved further, but is likely suffices for most usecases.
+The code above does around 550k inserts/second. This could likely be
+improved further, but it likely suffices for most usecases.
 
 # Compiling
 ```
-git clone https://github.com/berthubert/sqlitewrite.git --recurse
+git clone https://github.com/berthubert/sqlitewrite.git 
 cd sqlitewrite
 cmake .
 make
 ```
+
+# Using in your project
+Simply drop `sqlitewriter.cc` and `sqlitewriter.hh` in your project, and
+link in libsqlite3-dev.
 
 # Status
 Proof of concept.
