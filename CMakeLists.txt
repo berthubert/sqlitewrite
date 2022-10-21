@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
 project(powmon VERSION 1.0
-                  DESCRIPTION "Convert DSMR and GPIO pulses to Prometheus"
+                  DESCRIPTION "csv-like storage to sqlite"
                   LANGUAGES CXX)
 
 
