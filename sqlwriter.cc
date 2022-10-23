@@ -162,6 +162,18 @@ bool SQLiteWriter::haveColumn(std::string_view name)
 
 void SQLiteWriter::addValue(const initializer_list<std::pair<const char*, var_t>>& values)
 {
+  addValueGeneric(values);
+}
+
+void SQLiteWriter::addValue(const std::vector<std::pair<const char*, var_t>>& values)
+{
+  addValueGeneric(values);
+}
+
+
+template<typename T>
+void SQLiteWriter::addValueGeneric(const T& values)
+{
   std::lock_guard<std::mutex> lock(d_mutex);
   if(!d_db.isPrepared() || !equal(values.begin(), values.end(),
                             d_lastsig.cbegin(), d_lastsig.cend(),

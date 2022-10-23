@@ -47,8 +47,7 @@ private:
 
 class SQLiteWriter
 {
-private:
-  typedef std::variant<double, int32_t, uint32_t, int64_t, std::string> var_t;
+
 public:
   explicit SQLiteWriter(std::string_view fname) : d_db(fname)
   {
@@ -60,7 +59,11 @@ public:
     d_db.begin(); // open the transaction
     d_thread = std::thread(&SQLiteWriter::commitThread, this);
   }
+  typedef std::variant<double, int32_t, uint32_t, int64_t, std::string> var_t;
   void addValue(const std::initializer_list<std::pair<const char*, var_t>>& values);
+  void addValue(const std::vector<std::pair<const char*, var_t>>& values);
+  template<typename T>
+  void addValueGeneric(const T& values);
   ~SQLiteWriter()
   {
     //    std::cerr<<"Destructor called"<<std::endl;
