@@ -53,7 +53,7 @@ vector<vector<string>> MiniSQLite::exec(std::string_view str)
   if (rc != SQLITE_OK) {
     errstr = errmsg;
     sqlite3_free(errmsg);
-    throw std::runtime_error("Error executing sqlite3 query: "+errstr);
+    throw std::runtime_error("Error executing sqlite3 query '"+(string)str+"': "+errstr);
   }
   return d_rows; 
 }
