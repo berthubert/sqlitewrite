@@ -187,7 +187,7 @@ void SQLiteWriter::addValue(const initializer_list<std::pair<const char*, var_t>
         qmarks += ", ";
       }
       first=false;
-      q+=p.first;
+      q+="'"+string(p.first)+"'";
       qmarks +="?";
     }
     q+= ") values ("+qmarks+")";
