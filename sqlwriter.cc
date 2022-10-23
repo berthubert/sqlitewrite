@@ -120,7 +120,11 @@ void MiniSQLite::addColumn(string_view name, string_view type)
   // SECURITY PROBLEM - somehow we can't do prepared statements here
   
   if(d_notable) {
-    exec("create table if not exists data ( "+(string)name+" "+(string)type+" ) STRICT");
+#if SQLITE_VERSION_NUMBER >= 3037001
+    exec("create table if not exists data ( '"+(string)name+"' "+(string)type+" ) STRICT");
+#else
+    exec("create table if not exists data ( '"+(string)name+"' "+(string)type+" )");
+#endif
     d_notable=false;
   } else {
     exec("ALTER table data add column \""+string(name)+ "\" "+string(type));
