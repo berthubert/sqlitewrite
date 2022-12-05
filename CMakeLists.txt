@@ -20,4 +20,8 @@ target_link_libraries(demo
   dl
   )
 
+add_executable(testrunner testrunner.cc sqlwriter.cc )
+target_link_libraries(testrunner sqlite3 pthread dl)
 
+enable_testing()
+add_test(testname testrunner)

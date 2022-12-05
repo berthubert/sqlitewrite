@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <variant>
 #include <mutex>
 #include <thread>
@@ -14,35 +15,38 @@ class MiniSQLite
 public:
   MiniSQLite(std::string_view fname);
   ~MiniSQLite();
-  std::vector<std::pair<std::string, std::string>> getSchema();
-  void addColumn(std::string_view name, std::string_view type);
+  std::vector<std::pair<std::string, std::string>> getSchema(const std::string& table);
+  void addColumn(const std::string& table, std::string_view name, std::string_view type);
   std::vector<std::vector<std::string>> exec(std::string_view query);
-  void prepare(std::string_view str);
-  void bindPrep(int idx, bool value);
-  void bindPrep(int idx, int value);
-  void bindPrep(int idx, uint32_t value);
-  void bindPrep(int idx, long value);
-  void bindPrep(int idx, unsigned long value);
-  void bindPrep(int idx, long long value); 
-  void bindPrep(int idx, unsigned long long value);
-  void bindPrep(int idx, double value);
-  void bindPrep(int idx, const std::string& value);
-  void execPrep(); 
+  void prepare(const std::string& table, std::string_view str);
+  void bindPrep(const std::string& table, int idx, bool value);
+  void bindPrep(const std::string& table, int idx, int value);
+  void bindPrep(const std::string& table, int idx, uint32_t value);
+  void bindPrep(const std::string& table, int idx, long value);
+  void bindPrep(const std::string& table, int idx, unsigned long value);
+  void bindPrep(const std::string& table, int idx, long long value); 
+  void bindPrep(const std::string& table, int idx, unsigned long long value);
+  void bindPrep(const std::string& table, int idx, double value);
+  void bindPrep(const std::string& table, int idx, const std::string& value);
+  void execPrep(const std::string& table); 
   void begin();
   void commit();
   void cycle();
-  bool isPrepared() const
+  bool isPrepared(const std::string& table) const
   {
-    return d_stmt != nullptr;
+    if(auto iter = d_stmts.find(table); iter == d_stmts.end())
+      return false;
+    else
+      return iter->second != nullptr;
   }
+
 private:
   sqlite3* d_sqlite;
-  sqlite3_stmt* d_stmt{nullptr};
-  
+  std::unordered_map<std::string, sqlite3_stmt*> d_stmts;
   std::vector<std::vector<std::string>> d_rows; // for exec()
   static int helperFunc(void* ptr, int cols, char** colvals, char** colnames);
-  bool d_notable;
   bool d_intransaction{false};
+  bool haveTable(const std::string& table);
 };
 
 class SQLiteWriter
@@ -51,7 +55,6 @@ class SQLiteWriter
 public:
   explicit SQLiteWriter(std::string_view fname) : d_db(fname)
   {
-    d_columns = d_db.getSchema();
     //    for(const auto& c : d_columns)
     //      cout <<c.first<<"\t"<<c.second<<endl;
 
@@ -60,10 +63,11 @@ public:
     d_thread = std::thread(&SQLiteWriter::commitThread, this);
   }
   typedef std::variant<double, int32_t, uint32_t, int64_t, std::string> var_t;
-  void addValue(const std::initializer_list<std::pair<const char*, var_t>>& values);
-  void addValue(const std::vector<std::pair<const char*, var_t>>& values);
+  void addValue(const std::initializer_list<std::pair<const char*, var_t>>& values, const std::string& table="data");
+  void addValue(const std::vector<std::pair<const char*, var_t>>& values, const std::string& table="data");
+  
   template<typename T>
-  void addValueGeneric(const T& values);
+  void addValueGeneric(const std::string& table, const T& values);
   ~SQLiteWriter()
   {
     //    std::cerr<<"Destructor called"<<std::endl;
@@ -77,8 +81,8 @@ private:
   std::thread d_thread;
   std::mutex d_mutex;  
   MiniSQLite d_db;
-  std::vector<std::pair<std::string, std::string>> d_columns;
-  std::vector<std::string> d_lastsig;
-  bool haveColumn(std::string_view name);
+  std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> d_columns;
+  std::unordered_map<std::string, std::vector<std::string>> d_lastsig;
+  bool haveColumn(const std::string& table, std::string_view name);
 
 };

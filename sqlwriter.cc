@@ -10,18 +10,14 @@ MiniSQLite::MiniSQLite(std::string_view fname)
     throw runtime_error("Unable to open "+(string)fname+" for sqlite");
   }
   exec("PRAGMA journal_mode='wal'");
-  d_notable=getSchema().empty();
 }
 
-
-
 //! Get field names and types from a table
-vector<pair<string,string> > MiniSQLite::getSchema()
+vector<pair<string,string> > MiniSQLite::getSchema(const std::string& table)
 {
   vector<pair<string,string>> ret;
   
-  auto rows = exec("SELECT cid,name,type FROM pragma_table_xinfo('data')");
-
+  auto rows = exec("SELECT cid,name,type FROM pragma_table_xinfo('"+table+"')");
 
   for(const auto& r : rows) {
     ret.push_back({r[1], r[2]});
@@ -29,7 +25,8 @@ vector<pair<string,string> > MiniSQLite::getSchema()
   sort(ret.begin(), ret.end(), [](const auto& a, const auto& b) {
     return a.first < b.first;
   });
-   
+
+  //  cout<<"returning "<<ret.size()<<" rows for table "<<table<<"\n";
   return ret;
 }
 
@@ -58,44 +55,44 @@ vector<vector<string>> MiniSQLite::exec(std::string_view str)
   return d_rows; 
 }
 
-void MiniSQLite::bindPrep(int idx, bool value) {   sqlite3_bind_int(d_stmt, idx, value ? 1 : 0);   }
-void MiniSQLite::bindPrep(int idx, int value) {   sqlite3_bind_int(d_stmt, idx, value);   }
-void MiniSQLite::bindPrep(int idx, uint32_t value) {   sqlite3_bind_int64(d_stmt, idx, value);   }
-void MiniSQLite::bindPrep(int idx, long value) {   sqlite3_bind_int64(d_stmt, idx, value);   }
-void MiniSQLite::bindPrep(int idx, unsigned long value) {   sqlite3_bind_int64(d_stmt, idx, value);   }
-void MiniSQLite::bindPrep(int idx, long long value) {   sqlite3_bind_int64(d_stmt, idx, value);   }
-void MiniSQLite::bindPrep(int idx, unsigned long long value) {   sqlite3_bind_int64(d_stmt, idx, value);   }
-void MiniSQLite::bindPrep(int idx, double value) {   sqlite3_bind_double(d_stmt, idx, value);   }
-void MiniSQLite::bindPrep(int idx, const std::string& value) {   sqlite3_bind_text(d_stmt, idx, value.c_str(), value.size(), SQLITE_TRANSIENT);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, bool value) {   sqlite3_bind_int(d_stmts[table], idx, value ? 1 : 0);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, int value) {   sqlite3_bind_int(d_stmts[table], idx, value);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, uint32_t value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, long value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, unsigned long value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, long long value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, unsigned long long value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, double value) {   sqlite3_bind_double(d_stmts[table], idx, value);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, const std::string& value) {   sqlite3_bind_text(d_stmts[table], idx, value.c_str(), value.size(), SQLITE_TRANSIENT);   }
 
 
-void MiniSQLite::prepare(string_view str)
+void MiniSQLite::prepare(const std::string& table, string_view str)
 {
-  if(d_stmt) {
-    sqlite3_finalize(d_stmt);
-    d_stmt = 0;
+  if(d_stmts[table]) {
+    sqlite3_finalize(d_stmts[table]);
+    d_stmts[table] = 0;
   }
   const char* pTail;
   
-  if (sqlite3_prepare_v2(d_sqlite, &str[0], -1, &d_stmt, &pTail ) != SQLITE_OK) {
+  if (sqlite3_prepare_v2(d_sqlite, &str[0], -1, &d_stmts[table], &pTail ) != SQLITE_OK) {
     throw runtime_error("Unable to prepare query "+(string)str);
   }
 }
 
-void MiniSQLite::execPrep()
+void MiniSQLite::execPrep(const std::string& table)
 {
   int rc;
   for(;;) {
-    rc = sqlite3_step(d_stmt); // XXX this needs to be an error checking loop
+    rc = sqlite3_step(d_stmts[table]); // XXX this needs to be an error checking loop
     if(rc == SQLITE_DONE)
       break;
     else
       throw runtime_error("Sqlite error: "+std::to_string(rc));
   }
-  rc= sqlite3_reset(d_stmt);
+  rc= sqlite3_reset(d_stmts[table]);
   if(rc != SQLITE_OK)
     throw runtime_error("Sqlite error: "+std::to_string(rc));
-  sqlite3_clear_bindings(d_stmt);
+  sqlite3_clear_bindings(d_stmts[table]);
 }
 
 void MiniSQLite::begin()
@@ -114,20 +111,26 @@ void MiniSQLite::cycle()
   exec("commit;begin");
 }
 
-//! Add a column to a atable with a certain type
-void MiniSQLite::addColumn(string_view name, string_view type)
+bool MiniSQLite::haveTable(const string& table)
+{
+  return !getSchema(table).empty();
+}
+
+
+//! Add a column to a table with a certain type
+void MiniSQLite::addColumn(const string& table, string_view name, string_view type)
 {
   // SECURITY PROBLEM - somehow we can't do prepared statements here
   
-  if(d_notable) {
+  if(!haveTable(table)) {
 #if SQLITE_VERSION_NUMBER >= 3037001
-    exec("create table if not exists data ( '"+(string)name+"' "+(string)type+" ) STRICT");
+    exec("create table if not exists '"+table+"' ( '"+(string)name+"' "+(string)type+" ) STRICT");
 #else
-    exec("create table if not exists data ( '"+(string)name+"' "+(string)type+" )");
+    exec("create table if not exists '"+table+"' ( '"+(string)name+"' "+(string)type+" )");
 #endif
-    d_notable=false;
   } else {
-    exec("ALTER table data add column \""+string(name)+ "\" "+string(type));
+    //    cout<<"Adding column "<<name<<" to table "<<table<<endl;
+    exec("ALTER table \""+table+"\" add column \""+string(name)+ "\" "+string(type));
   }
 }
 
@@ -147,11 +150,15 @@ void SQLiteWriter::commitThread()
   //  cerr<<"Thread exiting"<<endl;
 }
 
-bool SQLiteWriter::haveColumn(std::string_view name)
+bool SQLiteWriter::haveColumn(const std::string& table, std::string_view name)
 {
+  if(d_columns[table].empty()) {
+    d_columns[table] = d_db.getSchema(table);
+  }
+  //  cout<<"Do we have column "<<name<<" in table "<<table<<endl;
   // this could be more efficient somehow
   pair<string, string> cmp{name, std::string()};
-  return binary_search(d_columns.begin(), d_columns.end(), cmp,
+  return binary_search(d_columns[table].begin(), d_columns[table].end(), cmp,
                        [](const auto& a, const auto& b)
                        {
                          return a.first < b.first;
@@ -160,39 +167,46 @@ bool SQLiteWriter::haveColumn(std::string_view name)
 }
 
 
-void SQLiteWriter::addValue(const initializer_list<std::pair<const char*, var_t>>& values)
+void SQLiteWriter::addValue(const initializer_list<std::pair<const char*, var_t>>& values, const std::string& table)
 {
-  addValueGeneric(values);
+  addValueGeneric(table, values);
 }
 
-void SQLiteWriter::addValue(const std::vector<std::pair<const char*, var_t>>& values)
+void SQLiteWriter::addValue(const std::vector<std::pair<const char*, var_t>>& values, const std::string& table)
 {
-  addValueGeneric(values);
+  addValueGeneric(table, values);
 }
 
 
 template<typename T>
-void SQLiteWriter::addValueGeneric(const T& values)
+void SQLiteWriter::addValueGeneric(const std::string& table, const T& values)
 {
   std::lock_guard<std::mutex> lock(d_mutex);
-  if(!d_db.isPrepared() || !equal(values.begin(), values.end(),
-                            d_lastsig.cbegin(), d_lastsig.cend(),
+  if(!d_db.isPrepared(table) || !equal(values.begin(), values.end(),
+                                       d_lastsig[table].cbegin(), d_lastsig[table].cend(),
                             [](const auto& a, const auto& b)
   {
     return a.first == b;
   })) {
     //    cout<<"Starting a new prepared statement"<<endl;
-    string q = "insert into data (";
+    string q = "insert into '"+table+"' (";
     string qmarks;
     bool first=true;
     for(const auto& p : values) {
-      if(!haveColumn(p.first)) {
-        if(std::get_if<double>(&p.second))
-          d_db.addColumn(p.first, "REAL");
-        else if(std::get_if<string>(&p.second))
-          d_db.addColumn(p.first, "TEXT");
-        else 
-          d_db.addColumn(p.first, "INT");
+      if(!haveColumn(table, p.first)) {
+        if(std::get_if<double>(&p.second)) {
+          d_db.addColumn(table, p.first, "REAL");
+          d_columns[table].push_back({p.first, "REAL"});
+        }
+        else if(std::get_if<string>(&p.second)) {
+          d_db.addColumn(table, p.first, "TEXT");
+          d_columns[table].push_back({p.first, "TEXT"});
+        } else  {
+          d_db.addColumn(table, p.first, "INT");
+          d_columns[table].push_back({p.first, "INT"});
+        }
+
+        sort(d_columns[table].begin(), d_columns[table].end());
       }
       if(!first) {
         q+=", ";
@@ -204,23 +218,23 @@ void SQLiteWriter::addValueGeneric(const T& values)
     }
     q+= ") values ("+qmarks+")";
 
-    d_db.prepare(q);
+    d_db.prepare(table, q);
     
-    d_lastsig.clear();
+    d_lastsig[table].clear();
     for(const auto& p : values)
-      d_lastsig.push_back(p.first);
+      d_lastsig[table].push_back(p.first);
   }
   else
     ;//cout<<"We can reuse old statement"<<endl;
   
   int n = 1;
   for(const auto& p : values) {
-    std::visit([this, &n](auto&& arg) {
-      d_db.bindPrep(n, arg);
+    std::visit([this, &n, &table](auto&& arg) {
+      d_db.bindPrep(table, n, arg);
     }, p.second);
     n++;
   }
-  d_db.execPrep();
+  d_db.execPrep(table);
 }
 
 MiniSQLite::~MiniSQLite()
@@ -229,8 +243,9 @@ MiniSQLite::~MiniSQLite()
   if(d_intransaction)
     commit();
 
-  if(d_stmt) // this could generate an error, but there is nothing we can do with it
-    sqlite3_finalize(d_stmt);
+  for(auto& stmt: d_stmts)
+    if(stmt.second)
+      sqlite3_finalize(stmt.second);
   
   sqlite3_close(d_sqlite); // same
 }

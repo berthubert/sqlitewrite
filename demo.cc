@@ -18,6 +18,11 @@ try
   }
 
   sqw.addValue({{"timestamp", 1234567890}});
+
+  for(int n = 0 ; n < 1; ++n) {
+    sqw.addValue({{"pief", n}, {"poef", 1.1234567890123*n}, {"paf", "bert"}});
+  }
+
 }
 catch (std::exception& e)
 {
