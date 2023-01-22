@@ -30,6 +30,10 @@ SQLiteWriter batches all writes in transactions. The transaction is cycled
 every second. Because WAL mode is used, readers can be active without
 interrupting writes to the file.
 
+In case you are trying to read from the file while sqlwriter is trying to
+write to it, a busy handler is implemented. This will not block your main
+process, since writes are performed from a writing thread.
+
 Prepared statements are automatically created and reused as long as the same
 fields are passed to `addValue()`. If different fields are passed, a new
 prepared statement is made.
@@ -50,4 +54,4 @@ Simply drop `sqlitewriter.cc` and `sqlitewriter.hh` in your project, and
 link in libsqlite3-dev.
 
 # Status
-Proof of concept.
+I use it as infrastructure in some of my projects. Seems to work well. 
