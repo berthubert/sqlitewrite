@@ -14,11 +14,11 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 
 add_executable(demo demo.cc sqlwriter.cc)
-target_link_libraries(demo
-  sqlite3
-  pthread
-  dl
-  )
+target_link_libraries(demo  sqlite3  pthread  dl  )
+
+add_executable(pqdemo pqdemo.cc psqlwriter.cc minipsql.cc)
+target_link_libraries(pqdemo pthread  dl pq )
+
 
 add_executable(testrunner testrunner.cc sqlwriter.cc )
 target_link_libraries(testrunner sqlite3 pthread dl)
