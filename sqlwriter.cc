@@ -76,7 +76,7 @@ void MiniSQLite::prepare(const std::string& table, string_view str)
   const char* pTail;
   
   if (sqlite3_prepare_v2(d_sqlite, &str[0], -1, &d_stmts[table], &pTail ) != SQLITE_OK) {
-    throw runtime_error("Unable to prepare query "+(string)str);
+    throw runtime_error("Unable to prepare query "+(string)str + ": "+sqlite3_errmsg(d_sqlite));
   }
 }
 
