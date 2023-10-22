@@ -53,7 +53,12 @@ make
 Simply drop `sqlitewriter.cc` and `sqlitewriter.hh` in your project, and
 link in libsqlite3-dev.
 
-# The writer can also read
+# PostgreSQL version
+Slightly less tested, but you can get the same API if you add psqlwriter.{cc,hh} and minipsql.{cc,hh} to your project.
+
+Despite vailiant efforts, the PostgreSQL version is 5 times slower than the SQLite version (at least). However, if you want your logged data to be available remotely, this is still a very good option.
+
+# The (sqlite) writer can also read
 Although it is a bit of anomaly, you can also use sqlitewriter to perform queries:
 
 ```
