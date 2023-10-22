@@ -74,6 +74,43 @@ TEST_CASE("test multiple tables") {
   unlink("testrunner-example.sqlite3");
 }
 
+TEST_CASE("test queries") {
+  unlink("testrunner-example.sqlite3");
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3");
+    sqw.addValue({{"piefpaf", 2}});
+    sqw.addValue({{"piefpaf", 7}});
+    sqw.addValue({{"piefpaf", 3}}, "metadata");
+    sqw.addValue({{"poef", 21}});
+    sqw.addValue({{"poef", 32}}, "metadata");
+    sqw.addValue({{"poef", -1}}, "metadata");    
+  }
+
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+  auto res = sqw.query("select * from data where piefpaf = ?", {2});
+  CHECK(res.size() == 1);
+  CHECK(res[0]["piefpaf"]=="2");
+
+  res = sqw.query("select sum(piefpaf) as s from data");
+  CHECK(res.size() == 1);
+  CHECK(res[0]["s"]=="9");
+
+  res = sqw.query("select piefpaf from data where piefpaf NOT NULL order by piefpaf");
+  CHECK(res.size() == 2);
+  CHECK(res[0]["piefpaf"]=="2");
+  CHECK(res[1]["piefpaf"]=="7");
+
+  res = sqw.query("select sum(poef) as s from metadata where poef > ?", {-2});
+  CHECK(res.size() == 1);
+  CHECK(res[0]["s"]=="31");
+
+  res = sqw.query("select sum(poef) as s from metadata where poef > ?", {-1});
+  CHECK(res.size() == 1);
+  CHECK(res[0]["s"]=="32");
+  
+  unlink("testrunner-example.sqlite3");
+}
+
 
 TEST_CASE("test scale") {
   unlink("testrunner-example.sqlite3");

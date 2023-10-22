@@ -53,5 +53,19 @@ make
 Simply drop `sqlitewriter.cc` and `sqlitewriter.hh` in your project, and
 link in libsqlite3-dev.
 
+# The writer can also read
+Although it is a bit of anomaly, you can also use sqlitewriter to perform queries:
+
+```
+SQLiteWriter sqw("example.sqlite3");
+auto res = sqw.query("select * from data where pief = ?", {123});
+cout << res.at(0)["pief"] << endl; // should print 123
+```
+
+This returns a vector of rows, each represented by an `unordered_map<string,string>`. 
+
+Note that this function could very well not be coherent with `addValue()` because of buffering. This is by design.  The `query` function is very useful for getting the value of counters for example, so you can use these for subsequent logging. But don't count on a value you ust wrote with `addValue()` to appear in an a `query()` immediately. 
+
+To be on the safe side, don't interleave calls to `query()` with calls to `addValue()`.
 # Status
 I use it as infrastructure in some of my projects. Seems to work well. 

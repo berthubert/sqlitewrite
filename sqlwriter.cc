@@ -80,13 +80,28 @@ void MiniSQLite::prepare(const std::string& table, string_view str)
   }
 }
 
-void MiniSQLite::execPrep(const std::string& table)
+void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_map<std::string, std::string>>* rows)
 {
   int rc;
+  if(rows)
+    rows->clear();
+
+  std::unordered_map<string, string> row;
   for(;;) {
     rc = sqlite3_step(d_stmts[table]); // XXX this needs to be an error checking loop
     if(rc == SQLITE_DONE)
       break;
+    else if(rows && rc == SQLITE_ROW) {
+      row.clear();
+      for(int n = 0 ; n < sqlite3_column_count(d_stmts[table]);++n) {
+        const char* p = (const char*)sqlite3_column_text(d_stmts[table], n);
+        if(!p) {
+          p="";  // null?
+        }
+        row[sqlite3_column_name(d_stmts[table], n)]=p;
+      }
+      rows->push_back(row);
+    }
     else
       throw runtime_error("Sqlite error: "+std::to_string(rc));
   }
@@ -235,6 +250,31 @@ void SQLiteWriter::addValueGeneric(const std::string& table, const T& values)
   }
   d_db.execPrep(table);
 }
+
+std::vector<std::unordered_map<std::string, std::string>> SQLiteWriter::query(const std::string& q, const initializer_list<var_t>& values)
+{
+  return queryGen(q, values);
+}
+
+
+template<typename T>
+vector<std::unordered_map<string, string>> SQLiteWriter::queryGen(const std::string& q, const T& values)
+{
+  std::lock_guard<std::mutex> lock(d_mutex);
+  d_db.prepare("", q); // we use an empty table name so as not to collide with other things
+  int n = 1;
+  for(const auto& p : values) {
+    std::visit([this, &n](auto&& arg) {
+      d_db.bindPrep("", n, arg);
+    }, p);
+    n++;
+  }
+  vector<unordered_map<string, string>> ret;
+  d_db.execPrep("", &ret);
+
+  return ret;
+}
+
 
 MiniSQLite::~MiniSQLite()
 {
