@@ -111,6 +111,45 @@ TEST_CASE("test queries") {
   unlink("testrunner-example.sqlite3");
 }
 
+TEST_CASE("test meta") {
+  unlink("testrunner-example.sqlite3");
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3", {{"piefpaf", "collate nocase"}});
+    sqw.addValue({{"piefpaf", "Guus"}, {"poef", "guus"}});
+  }
+
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+  auto res = sqw.query("select count(1) as c from data where piefpaf = ?", {"GUUS"});
+  CHECK(res.size() == 1);
+  CHECK(res[0]["c"]=="1");
+
+  res = sqw.query("select count(1) as c from data where poef = ?", {"GUUS"});
+  CHECK(res.size() == 1);
+  CHECK(res[0]["c"]=="0");
+  
+  unlink("testrunner-example.sqlite3");
+}
+
+TEST_CASE("test meta non-default table") {
+  unlink("testrunner-example.sqlite3");
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3", {{"piefpaf", "collate nocase"}});
+    sqw.addValue({{"piefpaf", "Guus"}, {"poef", "guus"}}, "second");
+  }
+
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+  auto res = sqw.query("select count(1) as c from second where piefpaf = ?", {"GUUS"});
+  CHECK(res.size() == 1);
+  CHECK(res[0]["c"]=="1");
+
+  res = sqw.query("select count(1) as c from second where poef = ?", {"GUUS"});
+  CHECK(res.size() == 1);
+  CHECK(res[0]["c"]=="0");
+  
+  unlink("testrunner-example.sqlite3");
+}
+
+
 
 TEST_CASE("test scale") {
   unlink("testrunner-example.sqlite3");
