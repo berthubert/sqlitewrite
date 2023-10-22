@@ -55,9 +55,6 @@ class SQLiteWriter
 public:
   explicit SQLiteWriter(std::string_view fname) : d_db(fname)
   {
-    //    for(const auto& c : d_columns)
-    //      cout <<c.first<<"\t"<<c.second<<endl;
-
     d_db.exec("PRAGMA journal_mode='wal'");
     d_db.begin(); // open the transaction
     d_thread = std::thread(&SQLiteWriter::commitThread, this);
@@ -70,7 +67,6 @@ public:
   void addValueGeneric(const std::string& table, const T& values);
   ~SQLiteWriter()
   {
-    //    std::cerr<<"Destructor called"<<std::endl;
     d_pleasequit=true;
     d_thread.join();
   }
