@@ -1,4 +1,4 @@
-# sqlitewrite
+# sqlitewriter
 csv-like storage to sqlite. Easy to use, type safe:
 
 ```C++
