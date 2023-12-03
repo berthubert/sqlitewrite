@@ -111,6 +111,54 @@ TEST_CASE("test queries") {
   unlink("testrunner-example.sqlite3");
 }
 
+TEST_CASE("test queries typed") {
+  unlink("testrunner-example.sqlite3");
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3");
+    sqw.addValue({{"piefpaf", 2}});
+    sqw.addValue({{"piefpaf", 7}});
+    sqw.addValue({{"poef", 21}});
+    sqw.addValue({{"user", "ahu"}, {"piefpaf", 42}});
+    sqw.addValue({{"temperature", 18.2}, {"piefpaf", 3}});
+
+    sqw.addValue({{"poef", 8}}, "metadata");
+    sqw.addValue({{"poef", 23}}, "metadata");
+    sqw.addValue({{"poef", -1}}, "metadata");
+    sqw.addValue({{"poef", -2}}, "metadata");
+  }
+
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+  auto res = sqw.queryT("select * from data where piefpaf = ?", {3});
+  CHECK(res.size() == 1);
+  CHECK(get<double>(res[0]["temperature"])==18.2);
+  CHECK(get<int64_t>(res[0]["piefpaf"])==3);
+
+  res = sqw.queryT("select sum(temperature) as s from data");
+  CHECK(get<double>(res[0]["s"])==18.2);
+
+  res = sqw.queryT("select user from data where piefpaf = ?", {42});
+  CHECK(get<string>(res[0]["user"])=="ahu");
+
+  res = sqw.queryT("select * from data order by piefpaf", {});
+  CHECK(get<nullptr_t>(res[0]["temperature"])==nullptr);
+
+  res = sqw.queryT("select piefpaf from data where piefpaf NOT NULL order by piefpaf");
+  CHECK(res.size() == 4);
+  CHECK(get<int64_t>(res[0]["piefpaf"])==2);
+  CHECK(get<int64_t>(res[2]["piefpaf"])==7);
+
+  res = sqw.queryT("select sum(poef) as s from metadata where poef > ?", {-2});
+  CHECK(res.size() == 1);
+  CHECK(get<int64_t>(res[0]["s"])==30);
+
+  res = sqw.queryT("select sum(poef) as s from metadata where poef > ?", {-1});
+  CHECK(res.size() == 1);
+  CHECK(get<int64_t>(res[0]["s"])==31);
+
+  unlink("testrunner-example.sqlite3");
+}
+
+
 TEST_CASE("test meta") {
   unlink("testrunner-example.sqlite3");
   {

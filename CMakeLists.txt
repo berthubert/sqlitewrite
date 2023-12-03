@@ -20,7 +20,7 @@ add_executable(pqdemo pqdemo.cc psqlwriter.cc minipsql.cc)
 target_link_libraries(pqdemo pthread  dl pq )
 
 
-add_executable(testrunner testrunner.cc sqlwriter.cc )
+add_executable(testrunner testrunner.cc sqlwriter.cc jsontests.cc jsonhelper.cc)
 target_link_libraries(testrunner sqlite3 pthread dl)
 
 enable_testing()

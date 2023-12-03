@@ -79,11 +79,40 @@ auto res = sqw.query("select * from data where pief = ?", {123});
 cout << res.at(0)["pief"] << endl; // should print 123
 ```
 
-This returns a vector of rows, each represented by an `unordered_map<string,string>`. 
+This returns a vector of rows, each represented by an `unordered_map<string,string>`. Alternatively you can use `queryT` which returns `std::variant<int64_t, double, string, nullptr_t>`, which means you can benefit from the typesafety. Note that all integer numbers end  up as signed int64_t in this variant union.
 
-Note that this function could very well not be coherent with `addValue()` because of buffering. This is by design.  The `query` function is very useful for getting the value of counters for example, so you can use these for subsequent logging. But don't count on a value you just wrote with `addValue()` to appear in an a `query()` immediately. 
+Also note that these functions could very well not be coherent with `addValue()` because of buffering. This is by design.  The `query` function is very useful for getting the value of counters for example, so you can use these for subsequent logging. But don't count on a value you just wrote with `addValue()` to appear in an a `query()` immediately. 
 
 To be on the safe side, don't interleave calls to `query()` with calls to `addValue()`.
+
+## JSON helper
+It is often convenient to turn your query results into JSON. The helpers `packResultJson` and `packResultJsonStr` in `jsonhelper.cc` benefit from the typesafety provided by `queryT` to create JSON that knows that 1.0 is not "1.0":
+
+```C++
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3");
+    sqw.addValue({{"pief",1}});
+    sqw.addValue({{"paf",12.0}});
+    sqw.addValue({{"user", "ahu"}, {"paf", 14}});
+    sqw.addValue({{"user", "jhu"}, {"paf", 14.23}, {"pief", 99}});
+  }
+  // best way to guarantee that you can query the data you inserted 
+  // is by closing the connection
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+  auto res = sqw.queryT("select * from data");
+
+  cout << packResultsJsonString(res) << endl;
+```
+
+Slightly reformatted, this prints:
+```
+[
+ {"pief":1},
+ {"paf":12.0},
+ {"paf":14.0,"user":"ahu"},
+ {"paf":14.23,"pief":99,"user":"jhu"}
+]
+```
 
 # Advanced features
 ## Per-field metadata
