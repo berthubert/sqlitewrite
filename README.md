@@ -1,5 +1,5 @@
 # sqlitewriter
-csv-like storage to sqlite. Easy to use, type safe:
+csv-like storage to sqlite and PostgreSQL. Easy to use, type safe:
 
 ```C++
 SQLiteWriter sqw("example.sqlite3");
@@ -49,7 +49,7 @@ The code above does around 550k inserts/second. This could likely be
 improved further, but it likely suffices for most usecases.
 
 # Compiling
-Make sure you have a c++ compiler installed, plus CMake and of course the SQLite3 development files:
+Make sure you have a C++ compiler installed, plus CMake and of course the SQLite3 development files. In addition, the tests also exercise the optional JSON helpers. These are part of nlohmann-json3-dev or find the single include file needed [here](https://github.com/nlohmann/json/releases).
 
 ```
 git clone https://github.com/berthubert/sqlitewrite.git 
@@ -61,7 +61,7 @@ make
 
 # Using in your project
 Simply drop `sqlitewriter.cc` and `sqlitewriter.hh` in your project, and
-link in libsqlite3-dev (or if needed, the amalgamated sqlite3 source).
+link in libsqlite3-dev (or if needed, the amalgamated sqlite3 source). If you want to benefit from the JSON helpers below, also compile in `jsonhelper.cc`, and include `jsonhelper.hh`.
 
 # PostgreSQL version
 Slightly less tested, but you can get the same API if you add psqlwriter.{cc,hh} and minipsql.{cc,hh} to your project. The class is called `PSQLWriter`, and instead of a filename you pass a connection string.
@@ -79,7 +79,7 @@ auto res = sqw.query("select * from data where pief = ?", {123});
 cout << res.at(0)["pief"] << endl; // should print 123
 ```
 
-This returns a vector of rows, each represented by an `unordered_map<string,string>`. Alternatively you can use `queryT` which returns `std::variant<int64_t, double, string, nullptr_t>`, which means you can benefit from the typesafety. Note that all integer numbers end  up as signed int64_t in this variant union.
+This returns a vector of rows, each represented by an `unordered_map<string,string>`. Alternatively you can use `queryT` which returns `std::variant<int64_t, double, string, nullptr_t>` values, which means you can benefit from the typesafety. Note that all integer numbers end  up as signed int64_t in this variant union.
 
 Also note that these functions could very well not be coherent with `addValue()` because of buffering. This is by design.  The `query` function is very useful for getting the value of counters for example, so you can use these for subsequent logging. But don't count on a value you just wrote with `addValue()` to appear in an a `query()` immediately. 
 
@@ -109,8 +109,8 @@ Slightly reformatted, this prints:
 [
  {"pief":1},
  {"paf":12.0},
- {"paf":14.0,"user":"ahu"},
- {"paf":14.23,"pief":99,"user":"jhu"}
+ {"paf":14.0, "user":"ahu"},
+ {"paf":14.23, "pief":99, "user":"jhu"}
 ]
 ```
 
