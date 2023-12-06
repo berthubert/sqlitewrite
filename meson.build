@@ -15,9 +15,9 @@ sqlitewriter_lib = library(
   dependencies: [sqlitedep]
 )
 
-
 sqlitewriter_dep = declare_dependency(
   link_with: sqlitewriter_lib,
+  include_directories: '',
 )
 
 if meson.version().version_compare('>=0.54.0')
