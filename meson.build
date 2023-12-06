@@ -11,8 +11,10 @@ sqlitewriter_lib = library(
   'sqlwriter.cc',
   'jsonhelper.cc',
   install: false,
+  include_directories: '',
   dependencies: [sqlitedep]
 )
+
 
 sqlitewriter_dep = declare_dependency(
   link_with: sqlitewriter_lib,
