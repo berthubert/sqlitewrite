@@ -28,3 +28,6 @@ endif
 executable('demo', 'demo.cc', 'sqlwriter.cc',  'jsonhelper.cc',
 	dependencies: [sqlitedep])
 
+executable('testrunner', 'testrunner.cc', 'sqlwriter.cc',  'jsonhelper.cc',
+	dependencies: [sqlitedep])
+
