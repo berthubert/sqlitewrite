@@ -197,6 +197,59 @@ TEST_CASE("test meta non-default table") {
   unlink("testrunner-example.sqlite3");
 }
 
+TEST_CASE("8 bit safe string") {
+  unlink("testrunner-example.sqlite3");
+  string bit8;
+  for(int n=255; n; --n) {
+    bit8.append(1, (char)n);
+  }
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3");
+    sqw.addValue({{"binarystring", bit8}});
+  }
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+  auto res =sqw.queryT("select cast(binarystring as BLOB) as bstr from data");
+  auto t = get<vector<uint8_t>>(res[0]["bstr"]);
+  CHECK(string((char*)&t.at(0), t.size())==bit8);
+  unlink("testrunner-example.sqlite3");
+}
+
+TEST_CASE("blob test") {
+  unlink("testrunner-example.sqlite3");
+  vector<uint8_t> bit8;
+  for(int n=128; n; --n) {
+    bit8.push_back(n);
+  }
+  for(int n=255; n > 128; --n) {
+    bit8.push_back(n);
+  }
+  
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3");
+    sqw.addValue({{"binblob", bit8}});
+  }
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+  auto res =sqw.queryT("select binblob from data");
+  CHECK(get<vector<uint8_t>>(res[0]["binblob"])==bit8);
+  unlink("testrunner-example.sqlite3");
+}
+
+TEST_CASE("empty blob and string") {
+  unlink("testrunner-example.sqlite3");
+  vector<uint8_t> bit8;
+  string leer;
+  
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3");
+    sqw.addValue({{"vec", bit8}, {"str", leer}});
+  }
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+  auto res =sqw.queryT("select * from data");
+  CHECK(get<string>(res[0]["str"])==leer);
+  CHECK(get<vector<uint8_t>>(res[0]["vec"])==bit8);
+
+  unlink("testrunner-example.sqlite3");
+}
 
 
 TEST_CASE("test scale") {

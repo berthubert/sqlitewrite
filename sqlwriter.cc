@@ -65,6 +65,12 @@ void MiniSQLite::bindPrep(const std::string& table, int idx, long long value) { 
 void MiniSQLite::bindPrep(const std::string& table, int idx, unsigned long long value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
 void MiniSQLite::bindPrep(const std::string& table, int idx, double value) {   sqlite3_bind_double(d_stmts[table], idx, value);   }
 void MiniSQLite::bindPrep(const std::string& table, int idx, const std::string& value) {   sqlite3_bind_text(d_stmts[table], idx, value.c_str(), value.size(), SQLITE_TRANSIENT);   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, const std::vector<uint8_t>& value) {
+  if(value.empty())
+    sqlite3_bind_zeroblob(d_stmts[table], idx, 0);
+  else
+    sqlite3_bind_blob(d_stmts[table], idx, &value.at(0), value.size(), SQLITE_TRANSIENT);
+}
 
 
 void MiniSQLite::prepare(const std::string& table, string_view str)
@@ -99,10 +105,18 @@ void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_m
         if(type == SQLITE_TEXT) {
           const char* p = (const char*)sqlite3_column_text(d_stmts[table], n);
           if(!p) {
-            row[sqlite3_column_name(d_stmts[table], n)]= nullptr;
+            row[sqlite3_column_name(d_stmts[table], n)]= string();
           }
           else
             row[sqlite3_column_name(d_stmts[table], n)]=p;
+        }
+        else if(type == SQLITE_BLOB) {
+          const uint8_t* p = (const uint8_t*)sqlite3_column_blob(d_stmts[table], n);
+          if(!p) {
+            row[sqlite3_column_name(d_stmts[table], n)]= vector<uint8_t>();
+          }
+          else
+            row[sqlite3_column_name(d_stmts[table], n)]=vector<uint8_t>(p, p+sqlite3_column_bytes(d_stmts[table], n));
         }
         else if(type == SQLITE_FLOAT) {
           row[sqlite3_column_name(d_stmts[table], n)]= sqlite3_column_double(d_stmts[table], n);
@@ -232,7 +246,12 @@ void SQLiteWriter::addValueGeneric(const std::string& table, const T& values)
         else if(std::get_if<string>(&p.second)) {
           d_db.addColumn(table, p.first, "TEXT", d_meta[p.first]);
           d_columns[table].push_back({p.first, "TEXT"});
-        } else  {
+        }
+        else if(std::get_if<vector<uint8_t>>(&p.second)) {
+          d_db.addColumn(table, p.first, "BLOB", d_meta[p.first]);
+          d_columns[table].push_back({p.first, "BLOB"});
+        }
+        else  {
           d_db.addColumn(table, p.first, "INT", d_meta[p.first]);
           d_columns[table].push_back({p.first, "INT"});
         }
@@ -280,8 +299,9 @@ std::vector<std::unordered_map<std::string, std::string>> SQLiteWriter::query(co
                        str=arg;
         else if constexpr (std::is_same_v<T, nullptr_t>)
                        str="";
-        else 
-          str = to_string(arg);
+        else if constexpr (std::is_same_v<T, vector<uint8_t>>)
+          str = "<blob>";
+        else str = to_string(arg);
       }, f.second);
       rowout[f.first] = str;
     }

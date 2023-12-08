@@ -26,6 +26,8 @@ CREATE TABLE data ( pief INT , "poef" REAL, "paf" TEXT, "timestamp" INT) STRICT;
 The `addValue()` method can be used to pass an arbitrary number of fields.
 Columns will automatically be generated in the table on their first use. 
 
+Note that strings are stored as TEXT which means they benefit from utf-8 processing. If you don't want that, store `vector<uint8_t>`, which will end up as a blob.
+
 You can also add data to other tables than `data` like this:
 
 ```C++
@@ -79,7 +81,7 @@ auto res = sqw.query("select * from data where pief = ?", {123});
 cout << res.at(0)["pief"] << endl; // should print 123
 ```
 
-This returns a vector of rows, each represented by an `unordered_map<string,string>`. Alternatively you can use `queryT` which returns `std::variant<int64_t, double, string, nullptr_t>` values, which means you can benefit from the typesafety. Note that all integer numbers end  up as signed int64_t in this variant union.
+This returns a vector of rows, each represented by an `unordered_map<string,string>`. Alternatively you can use `queryT` which returns `std::variant<int64_t, double, string, nullptr_t, vector<uint8_t>>` values, which means you can benefit from the typesafety. Note that all integer numbers end  up as signed int64_t in this variant union.
 
 Also note that these functions could very well not be coherent with `addValue()` because of buffering. This is by design.  The `query` function is very useful for getting the value of counters for example, so you can use these for subsequent logging. But don't count on a value you just wrote with `addValue()` to appear in an a `query()` immediately. 
 

@@ -28,8 +28,9 @@ public:
   void bindPrep(const std::string& table, int idx, unsigned long long value);
   void bindPrep(const std::string& table, int idx, double value);
   void bindPrep(const std::string& table, int idx, const std::string& value);
+  void bindPrep(const std::string& table, int idx, const std::vector<uint8_t>& value);
 
-  typedef std::variant<double, int64_t, std::string, std::nullptr_t> outvar_t; 
+  typedef std::variant<double, int64_t, std::string, std::vector<uint8_t>, std::nullptr_t> outvar_t; 
   void execPrep(const std::string& table, std::vector<std::unordered_map<std::string, outvar_t>>* rows=0); 
   void begin();
   void commit();
@@ -62,7 +63,7 @@ public:
     d_thread = std::thread(&SQLiteWriter::commitThread, this);
     d_meta = meta;
   }
-  typedef std::variant<double, int32_t, uint32_t, int64_t, std::string> var_t;
+  typedef std::variant<double, int32_t, uint32_t, int64_t, std::string, std::vector<uint8_t>> var_t;
   void addValue(const std::initializer_list<std::pair<const char*, var_t>>& values, const std::string& table="data");
   void addValue(const std::vector<std::pair<const char*, var_t>>& values, const std::string& table="data");
   
