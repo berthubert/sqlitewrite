@@ -9,6 +9,7 @@ MiniSQLite::MiniSQLite(std::string_view fname)
   if ( sqlite3_open(&fname[0], &d_sqlite)!=SQLITE_OK ) {
     throw runtime_error("Unable to open "+(string)fname+" for sqlite");
   }
+  sqlite3_extended_result_codes(d_sqlite, 1);
   exec("PRAGMA journal_mode='wal'");
   sqlite3_busy_timeout(d_sqlite, 60000);
 }
