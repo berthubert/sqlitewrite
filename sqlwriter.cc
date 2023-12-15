@@ -57,20 +57,27 @@ vector<vector<string>> MiniSQLite::exec(std::string_view str)
   return d_rows; 
 }
 
-void MiniSQLite::bindPrep(const std::string& table, int idx, bool value) {   sqlite3_bind_int(d_stmts[table], idx, value ? 1 : 0);   }
-void MiniSQLite::bindPrep(const std::string& table, int idx, int value) {   sqlite3_bind_int(d_stmts[table], idx, value);   }
-void MiniSQLite::bindPrep(const std::string& table, int idx, uint32_t value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
-void MiniSQLite::bindPrep(const std::string& table, int idx, long value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
-void MiniSQLite::bindPrep(const std::string& table, int idx, unsigned long value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
-void MiniSQLite::bindPrep(const std::string& table, int idx, long long value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
-void MiniSQLite::bindPrep(const std::string& table, int idx, unsigned long long value) {   sqlite3_bind_int64(d_stmts[table], idx, value);   }
-void MiniSQLite::bindPrep(const std::string& table, int idx, double value) {   sqlite3_bind_double(d_stmts[table], idx, value);   }
-void MiniSQLite::bindPrep(const std::string& table, int idx, const std::string& value) {   sqlite3_bind_text(d_stmts[table], idx, value.c_str(), value.size(), SQLITE_TRANSIENT);   }
+static void checkBind(int rc)
+{
+  if(rc) {
+    throw std::runtime_error("Error binding value to prepared statement: " + string(sqlite3_errstr(rc)));
+  }
+}
+
+void MiniSQLite::bindPrep(const std::string& table, int idx, bool value) {   checkBind(sqlite3_bind_int(d_stmts[table], idx, value ? 1 : 0));   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, int value) {   checkBind(sqlite3_bind_int(d_stmts[table], idx, value));   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, uint32_t value) {   checkBind(sqlite3_bind_int64(d_stmts[table], idx, value));   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, long value) {   checkBind(sqlite3_bind_int64(d_stmts[table], idx, value));   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, unsigned long value) {   checkBind(sqlite3_bind_int64(d_stmts[table], idx, value));   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, long long value) {   checkBind(sqlite3_bind_int64(d_stmts[table], idx, value));   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, unsigned long long value) {   checkBind(sqlite3_bind_int64(d_stmts[table], idx, value));   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, double value) {   checkBind(sqlite3_bind_double(d_stmts[table], idx, value));   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, const std::string& value) {   checkBind(sqlite3_bind_text(d_stmts[table], idx, value.c_str(), value.size(), SQLITE_TRANSIENT));   }
 void MiniSQLite::bindPrep(const std::string& table, int idx, const std::vector<uint8_t>& value) {
   if(value.empty())
-    sqlite3_bind_zeroblob(d_stmts[table], idx, 0);
+    checkBind(sqlite3_bind_zeroblob(d_stmts[table], idx, 0));
   else
-    sqlite3_bind_blob(d_stmts[table], idx, &value.at(0), value.size(), SQLITE_TRANSIENT);
+    checkBind(sqlite3_bind_blob(d_stmts[table], idx, &value.at(0), value.size(), SQLITE_TRANSIENT));
 }
 
 
@@ -132,8 +139,11 @@ void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_m
       }
       rows->push_back(row);
     }
-    else
+    else {
+      sqlite3_reset(d_stmts[table]);
+      sqlite3_clear_bindings(d_stmts[table]);
       throw runtime_error("Sqlite error "+std::to_string(rc)+": "+sqlite3_errstr(rc));
+    }
   }
   rc= sqlite3_reset(d_stmts[table]);
   if(rc != SQLITE_OK)

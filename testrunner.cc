@@ -251,6 +251,21 @@ TEST_CASE("empty blob and string") {
   unlink("testrunner-example.sqlite3");
 }
 
+TEST_CASE("deal with constraint error") {
+  unlink("testrunner-example.sqlite3");
+  SQLiteWriter sqw("testrunner-example.sqlite3", {{"user", "UNIQUE"}});
+  sqw.addValue({{"user", "ahu"}, {"test", 1}});
+  
+  REQUIRE_THROWS_AS(sqw.addValue({{"user", "ahu"}, {"test", 2}}), std::exception);
+  // we previously had a bug where throwing such an exception would
+  // leave a prepared statement in a bad state, which would lead
+  // to subsequent bogus violations of constraints
+  sqw.addValue({{"user", "ahu2"}, {"test", 1}});
+  sqw.addValue({{"user", "ahu3"}, {"test", 1}});
+  unlink("testrunner-example.sqlite3");
+}
+
+
 
 TEST_CASE("test scale") {
   unlink("testrunner-example.sqlite3");
