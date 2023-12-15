@@ -56,13 +56,17 @@ class SQLiteWriter
 {
 
 public:
-  explicit SQLiteWriter(std::string_view fname, const std::map<std::string,std::string>& meta = std::map<std::string,std::string>() ) : d_db(fname)
+  explicit SQLiteWriter(std::string_view fname, const std::map<std::string, std::map<std::string,std::string>>& meta = std::map<std::string,std::map<std::string,std::string>>() ) : d_db(fname)
   {
     d_db.exec("PRAGMA journal_mode='wal'");
     d_db.begin(); // open the transaction
     d_thread = std::thread(&SQLiteWriter::commitThread, this);
     d_meta = meta;
   }
+
+  explicit SQLiteWriter(std::string_view fname, const std::map<std::string,std::string>& meta) : SQLiteWriter(fname, {{"data", meta}})
+  {}
+  
   typedef std::variant<double, int32_t, uint32_t, int64_t, std::string, std::vector<uint8_t>> var_t;
   void addValue(const std::initializer_list<std::pair<const char*, var_t>>& values, const std::string& table="data");
   void addValue(const std::vector<std::pair<const char*, var_t>>& values, const std::string& table="data");
@@ -91,7 +95,7 @@ private:
   MiniSQLite d_db;
   std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> d_columns;
   std::unordered_map<std::string, std::vector<std::string>> d_lastsig;
-  std::map<std::string, std::string> d_meta;
+  std::map<std::string, std::map<std::string, std::string>> d_meta;
 
   bool haveColumn(const std::string& table, std::string_view name);
   template<typename T>

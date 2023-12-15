@@ -251,19 +251,19 @@ void SQLiteWriter::addValueGeneric(const std::string& table, const T& values)
     for(const auto& p : values) {
       if(!haveColumn(table, p.first)) {
         if(std::get_if<double>(&p.second)) {
-          d_db.addColumn(table, p.first, "REAL", d_meta[p.first]);
+          d_db.addColumn(table, p.first, "REAL", d_meta[table][p.first]);
           d_columns[table].push_back({p.first, "REAL"});
         }
         else if(std::get_if<string>(&p.second)) {
-          d_db.addColumn(table, p.first, "TEXT", d_meta[p.first]);
+          d_db.addColumn(table, p.first, "TEXT", d_meta[table][p.first]);
           d_columns[table].push_back({p.first, "TEXT"});
         }
         else if(std::get_if<vector<uint8_t>>(&p.second)) {
-          d_db.addColumn(table, p.first, "BLOB", d_meta[p.first]);
+          d_db.addColumn(table, p.first, "BLOB", d_meta[table][p.first]);
           d_columns[table].push_back({p.first, "BLOB"});
         }
         else  {
-          d_db.addColumn(table, p.first, "INT", d_meta[p.first]);
+          d_db.addColumn(table, p.first, "INT", d_meta[table][p.first]);
           d_columns[table].push_back({p.first, "INT"});
         }
 

@@ -124,7 +124,13 @@ SQLiteWriter creates populates tables for you automatically, setting the correct
 SQLiteWriter sqw("example.sqlite3", {{"name", "collate nocase"}});
 ```
 
-This will lead SQLiteWriter to add 'collate nocase' when the 'name' field is created.
+This will lead SQLiteWriter to add 'collate nocase' when the 'name' field is created for the main 'data' table. To specify for specific tables, use this syntax:
+
+```C++
+SQLiteWriter sqw("example.sqlite.sqlite3", {{"second", 
+    {{"user", "UNIQUE"}}
+    }});
+```
 
 Note that this is also the only time when this metadata is used. If you have a pre-existing database that already has a 'name' field, it will not be changed to 'collate nocase'.
 
