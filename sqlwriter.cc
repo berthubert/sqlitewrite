@@ -11,6 +11,7 @@ MiniSQLite::MiniSQLite(std::string_view fname)
   }
   sqlite3_extended_result_codes(d_sqlite, 1);
   exec("PRAGMA journal_mode='wal'");
+  exec("PRAGMA foreign_keys=ON");
   sqlite3_busy_timeout(d_sqlite, 60000);
 }
 

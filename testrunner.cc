@@ -275,6 +275,32 @@ TEST_CASE("deal with constraint error") {
 }
 
 
+TEST_CASE("test foreign keys") {
+  unlink("testrunner-example.sqlite3");
+  SQLiteWriter sqw("testrunner-example.sqlite3",
+                   {
+                     {"posts", {{"id", "PRIMARY KEY NOT NULL"}} },
+                     {"images", {{"postid", "NOT NULL REFERENCES posts(id) ON DELETE CASCADE"}}},
+                   });;
+  auto res = sqw.query("PRAGMA foreign_keys");
+  CHECK(res.size()==1);
+  CHECK(res[0]["foreign_keys"]=="1");
+  
+  
+
+  sqw.addValue({{"id", "main"}, {"name", "main album"}}, "posts");
+  sqw.addValue({{"id", "first"}, {"postid", "main"}}, "images");
+
+  REQUIRE_THROWS_AS(sqw.addValue({{"id", "second"}}, "images"), std::exception);
+  REQUIRE_THROWS_AS(sqw.addValue({{"id", "second"}, {"postid", "nosuchpost"}}, "images"), std::exception);
+
+  sqw.query("delete from posts where id=?", {"main"});
+  auto res2 = sqw.queryT("select count(1) as c from images");
+  REQUIRE(res2.size() == 1);
+  CHECK(get<int64_t>(res2[0]["c"])==0);
+  
+}
+
 
 TEST_CASE("test scale") {
   unlink("testrunner-example.sqlite3");
