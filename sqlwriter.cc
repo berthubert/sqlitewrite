@@ -114,10 +114,10 @@ void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_m
         if(type == SQLITE_TEXT) {
           const char* p = (const char*)sqlite3_column_text(d_stmts[table], n);
           if(!p) {
-            row[sqlite3_column_name(d_stmts[table], n)]= string();
+            row[sqlite3_column_name(d_stmts[table], n)] = string();
           }
           else
-            row[sqlite3_column_name(d_stmts[table], n)]=p;
+            row[sqlite3_column_name(d_stmts[table], n)] = string(p, sqlite3_column_bytes(d_stmts[table], n));
         }
         else if(type == SQLITE_BLOB) {
           const uint8_t* p = (const uint8_t*)sqlite3_column_blob(d_stmts[table], n);

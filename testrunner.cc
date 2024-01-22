@@ -220,6 +220,9 @@ TEST_CASE("8 bit safe string") {
   auto res =sqw.queryT("select cast(binarystring as BLOB) as bstr from data");
   auto t = get<vector<uint8_t>>(res[0]["bstr"]);
   CHECK(string((char*)&t.at(0), t.size())==bit8);
+
+  res =sqw.queryT("select binarystring as bstr from data");
+  CHECK(get<string>(res.at(0).at("bstr")) == bit8);
   unlink("testrunner-example.sqlite3");
 }
 
