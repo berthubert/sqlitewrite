@@ -304,6 +304,25 @@ TEST_CASE("test foreign keys") {
   
 }
 
+TEST_CASE("insert or replace") {
+  unlink("insertorreplace.sqlite3");
+  SQLiteWriter sqw("insertorreplace.sqlite3", {
+      {
+	"data", {{"id", "PRIMARY KEY"}}}
+    });
+  sqw.addValue({{"id", 1}, {"user", "ahu"}});
+  REQUIRE_THROWS_AS(  sqw.addValue({{"id", 1}, {"user", "jhu"}}), std::exception);
+  auto res = sqw.queryT("select user from data where id=?", {1});
+  CHECK(res.size() == 1);
+  
+  sqw.addOrReplaceValue({{"id", 1}, {"user", "harry"}});
+
+  res = sqw.queryT("select user from data where id=?", {1});
+  REQUIRE(res.size() == 1);
+  CHECK(get<string>(res[0]["user"]) == "harry");
+
+  REQUIRE_THROWS_AS(  sqw.addValue({{"id", 1}, {"user", "jhu"}}), std::exception);
+}
 
 TEST_CASE("test scale") {
   unlink("testrunner-example.sqlite3");

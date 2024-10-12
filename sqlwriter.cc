@@ -234,19 +234,30 @@ void SQLiteWriter::addValue(const std::vector<std::pair<const char*, var_t>>& va
   addValueGeneric(table, values);
 }
 
+void SQLiteWriter::addOrReplaceValue(const initializer_list<std::pair<const char*, var_t>>& values, const std::string& table)
+{
+  addValueGeneric(table, values, true);
+}
+
+void SQLiteWriter::addOrReplaceValue(const std::vector<std::pair<const char*, var_t>>& values, const std::string& table)
+{
+  addValueGeneric(table, values, true);
+}
+
+
 
 template<typename T>
-void SQLiteWriter::addValueGeneric(const std::string& table, const T& values)
+void SQLiteWriter::addValueGeneric(const std::string& table, const T& values, bool replace)
 {
   std::lock_guard<std::mutex> lock(d_mutex);
-  if(!d_db.isPrepared(table) || !equal(values.begin(), values.end(),
+  if(!d_db.isPrepared(table) || d_lastreplace[table] != replace || !equal(values.begin(), values.end(),
                                        d_lastsig[table].cbegin(), d_lastsig[table].cend(),
                             [](const auto& a, const auto& b)
   {
     return a.first == b;
   })) {
     //    cout<<"Starting a new prepared statement"<<endl;
-    string q = "insert into '"+table+"' (";
+    string q = string("insert ") + (replace ? "or replace " : "") + "into '"+ table+"' (";
     string qmarks;
     bool first=true;
     for(const auto& p : values) {
@@ -285,6 +296,7 @@ void SQLiteWriter::addValueGeneric(const std::string& table, const T& values)
     d_lastsig[table].clear();
     for(const auto& p : values)
       d_lastsig[table].push_back(p.first);
+    d_lastreplace[table]=replace;
   }
   
   int n = 1;

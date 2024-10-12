@@ -70,9 +70,13 @@ public:
   typedef std::variant<double, int32_t, uint32_t, int64_t, std::string, std::vector<uint8_t>> var_t;
   void addValue(const std::initializer_list<std::pair<const char*, var_t>>& values, const std::string& table="data");
   void addValue(const std::vector<std::pair<const char*, var_t>>& values, const std::string& table="data");
-  
+
+  void addOrReplaceValue(const std::initializer_list<std::pair<const char*, var_t>>& values, const std::string& table="data");
+  void addOrReplaceValue(const std::vector<std::pair<const char*, var_t>>& values, const std::string& table="data");
+
   template<typename T>
-  void addValueGeneric(const std::string& table, const T& values);
+  void addValueGeneric(const std::string& table, const T& values, bool replace=false);
+
   ~SQLiteWriter()
   {
     d_pleasequit=true;
@@ -95,6 +99,7 @@ private:
   MiniSQLite d_db;
   std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> d_columns;
   std::unordered_map<std::string, std::vector<std::string>> d_lastsig;
+  std::unordered_map<std::string, bool> d_lastreplace;
   std::map<std::string, std::map<std::string, std::string>> d_meta;
 
   bool haveColumn(const std::string& table, std::string_view name);
