@@ -33,3 +33,24 @@ TEST_CASE("basic json test") {
   unlink("testrunner-example.sqlite3");
 }
 
+
+TEST_CASE("json helper")
+{
+  SQLiteWriter sqw("");
+  sqw.addValue({{"id", 1}, {"user", "ahu"}});
+  sqw.addValue({{"id", 2}});
+  auto res = sqw.queryT("select * from data");
+  REQUIRE(res.size() == 2);
+
+  auto j = packResultsJson(res, false);
+  REQUIRE(j.size() == 2);
+  CHECK(j[0].count("user") == 1);
+  CHECK(j[1].count("user") == 0);
+
+  j = packResultsJson(res);
+  REQUIRE(j.size() == 2);
+  CHECK(j[0].count("user") == 1);
+  CHECK(j[1].count("user") == 1);
+  string user = j[1]["user"];
+  CHECK(user =="");
+}
