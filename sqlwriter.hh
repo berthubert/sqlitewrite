@@ -38,7 +38,7 @@ public:
   void bindPrep(const std::string& table, int idx, const std::vector<uint8_t>& value);
 
   typedef std::variant<double, int64_t, std::string, std::vector<uint8_t>, std::nullptr_t> outvar_t; 
-  void execPrep(const std::string& table, std::vector<std::unordered_map<std::string, outvar_t>>* rows=0); 
+  void execPrep(const std::string& table, std::vector<std::unordered_map<std::string, outvar_t>>* rows=0, unsigned int msec=0); 
   void begin();
   void commit();
   void cycle();
@@ -106,7 +106,7 @@ public:
   std::vector<std::unordered_map<std::string,std::string>> query(const std::string& q, const std::initializer_list<var_t>& values = std::initializer_list<var_t>());
 
   // same, but typed
-  std::vector<std::unordered_map<std::string,MiniSQLite::outvar_t>> queryT(const std::string& q, const std::initializer_list<var_t>& values = std::initializer_list<var_t>());
+  std::vector<std::unordered_map<std::string,MiniSQLite::outvar_t>> queryT(const std::string& q, const std::initializer_list<var_t>& values = std::initializer_list<var_t>(), unsigned int msec=0);
   
 private:
   void commitThread();
@@ -122,5 +122,5 @@ private:
 
   bool haveColumn(const std::string& table, std::string_view name);
   template<typename T>
-  std::vector<std::unordered_map<std::string, MiniSQLite::outvar_t>> queryGen(const std::string& q, const T& values);
+  std::vector<std::unordered_map<std::string, MiniSQLite::outvar_t>> queryGen(const std::string& q, const T& values, unsigned int mesec=0);
 };

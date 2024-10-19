@@ -103,6 +103,8 @@ From the unit tests:
   CHECK(get<int64_t>(res[0]["c"]) == 1);
 ```
 
+In readonly mode, you can also pass an extra field to queryT, specifying how many milliseconds the query should be allowed to run. An exception is thrown if this time period is exceeded.
+
 ## JSON helper
 It is often convenient to turn your query results into JSON. The helpers `packResultJson` and `packResultJsonStr` in `jsonhelper.cc` benefit from the typesafety provided by `queryT` to create JSON that knows that 1.0 is not "1.0":
 

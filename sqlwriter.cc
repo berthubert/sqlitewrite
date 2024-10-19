@@ -101,12 +101,54 @@ void MiniSQLite::prepare(const std::string& table, string_view str)
   }
 }
 
-void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_map<std::string, outvar_t>>* rows)
+struct DeadlineCatcher
+{
+  DeadlineCatcher(sqlite3* db, unsigned int msec) : d_sqlite(db), d_msec(msec)
+  {
+    if(!msec)
+      return;
+    clock_gettime(CLOCK_MONOTONIC, &d_ttd);
+    auto r = div(msec, 1000); // seconds
+    d_ttd.tv_sec += r.quot;
+    d_ttd.tv_nsec += 1000000 * r.rem;
+    
+    if(d_ttd.tv_nsec > 1000000000) {
+      d_ttd.tv_sec++;
+      d_ttd.tv_nsec -= 1000000000;
+    }
+    sqlite3_progress_handler(d_sqlite, 100, [](void *ptr) -> int {
+      DeadlineCatcher* us = (DeadlineCatcher*) ptr;
+      us->called++;
+      struct timespec now;
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      return std::tie(us->d_ttd.tv_sec, us->d_ttd.tv_nsec) <
+	std::tie(now.tv_sec, now.tv_nsec);
+    }, this);
+  }
+
+  DeadlineCatcher(const DeadlineCatcher& rhs) = delete;
+  
+  ~DeadlineCatcher()
+  {
+    if(d_msec) {
+      sqlite3_progress_handler(d_sqlite, 0, 0, 0); // remove
+      //      cout<<"Was called "<<called<<" times\n";
+    }
+  }
+  sqlite3* d_sqlite;
+  const unsigned int d_msec;
+  struct timespec d_ttd;
+  unsigned int called = 0;
+};
+
+void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_map<std::string, outvar_t>>* rows, unsigned int msec)
 {
   int rc;
   if(rows)
     rows->clear();
 
+  DeadlineCatcher dc(d_sqlite, msec); // noop if msec = 0
+  
   std::unordered_map<string, outvar_t> row;
   for(;;) {
     rc = sqlite3_step(d_stmts[table]); 
@@ -343,14 +385,17 @@ std::vector<std::unordered_map<std::string, std::string>> SQLiteWriter::query(co
   return ret;
 }
 
-std::vector<std::unordered_map<std::string, MiniSQLite::outvar_t>> SQLiteWriter::queryT(const std::string& q, const initializer_list<var_t>& values)
+std::vector<std::unordered_map<std::string, MiniSQLite::outvar_t>> SQLiteWriter::queryT(const std::string& q, const initializer_list<var_t>& values, unsigned int msec)
 {
-  return queryGen(q, values);
+  return queryGen(q, values, msec);
 }
 
 template<typename T>
-vector<std::unordered_map<string, MiniSQLite::outvar_t>> SQLiteWriter::queryGen(const std::string& q, const T& values)
+vector<std::unordered_map<string, MiniSQLite::outvar_t>> SQLiteWriter::queryGen(const std::string& q, const T& values, unsigned int msec)
 {
+  if(msec && d_flag != SQLWFlag::ReadOnly)
+    throw std::runtime_error("Timeout only possible for read-only connections");
+  
   std::lock_guard<std::mutex> lock(d_mutex);
   d_db.prepare("", q); // we use an empty table name so as not to collide with other things
   int n = 1;
@@ -361,7 +406,7 @@ vector<std::unordered_map<string, MiniSQLite::outvar_t>> SQLiteWriter::queryGen(
     n++;
   }
   vector<unordered_map<string, MiniSQLite::outvar_t>> ret;
-  d_db.execPrep("", &ret);
+  d_db.execPrep("", &ret, msec);
 
   return ret;
 }

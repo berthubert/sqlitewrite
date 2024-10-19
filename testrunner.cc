@@ -379,3 +379,19 @@ TEST_CASE("test scale") {
 
   unlink("testrunner-example.sqlite3");
 }
+
+TEST_CASE("timeout test") {
+  unlink("testrunner-example.sqlite3");
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3");
+    for(int n=0; n < 1000; ++n) {
+      sqw.addValue({{"piefpaf", n}, {"wuh", 1.0*n}, {"wah", std::to_string(n)}}, "one");
+      sqw.addValue({{"piefpaf", n}, {"wuh", 1.0*n}, {"wah", std::to_string(n)}}, "two");
+    }
+  }
+  SQLiteWriter sqw("testrunner-example.sqlite3", SQLWFlag::ReadOnly);
+  auto res = sqw.queryT("select * from one", {}, 1000);
+  CHECK(res.size() == 1000);
+
+  REQUIRE_THROWS_AS(sqw.queryT("select * from one,two", {}, 1234), std::runtime_error);
+}
