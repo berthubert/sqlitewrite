@@ -87,6 +87,22 @@ Also note that these functions could very well not be coherent with `addValue()`
 
 To be on the safe side, don't interleave calls to `query()` with calls to `addValue()`.
 
+## Readonly mode
+When using SQLiteWriter to only perform reads, it is possible to set read only mode. This instructs sqlite3 to not permit changes, and it als makes sqlitewriter not create a writing thread.
+
+From the unit tests:
+```C++
+...
+  SQLiteWriter ro(fname, SQLWFlag::ReadOnly);
+  auto res = ro.queryT("select * from data where some='stuff'");
+  REQUIRE(res.size() == 1);
+
+  REQUIRE_THROWS_AS(ro.addValue({{"some", "more"}}), std::exception);
+  res = ro.queryT("select count(1) c from data");
+  REQUIRE(res.size() == 1);
+  CHECK(get<int64_t>(res[0]["c"]) == 1);
+```
+
 ## JSON helper
 It is often convenient to turn your query results into JSON. The helpers `packResultJson` and `packResultJsonStr` in `jsonhelper.cc` benefit from the typesafety provided by `queryT` to create JSON that knows that 1.0 is not "1.0":
 

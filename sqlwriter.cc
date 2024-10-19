@@ -4,9 +4,15 @@
 #include "sqlite3.h"
 using namespace std;
 
-MiniSQLite::MiniSQLite(std::string_view fname)
+MiniSQLite::MiniSQLite(std::string_view fname, SQLWFlag flag)
 {
-  if ( sqlite3_open(&fname[0], &d_sqlite)!=SQLITE_OK ) {
+  int flags;
+  if(flag == SQLWFlag::ReadOnly)
+    flags = SQLITE_OPEN_READONLY;
+  else
+    flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+  
+  if ( sqlite3_open_v2(&fname[0], &d_sqlite, flags, 0)!=SQLITE_OK) {
     throw runtime_error("Unable to open "+(string)fname+" for sqlite");
   }
   sqlite3_extended_result_codes(d_sqlite, 1);

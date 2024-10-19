@@ -322,6 +322,27 @@ TEST_CASE("insert or replace") {
   CHECK(get<string>(res[0]["user"]) == "harry");
 
   REQUIRE_THROWS_AS(  sqw.addValue({{"id", 1}, {"user", "jhu"}}), std::exception);
+  unlink("insertorreplace.sqlite3");
+}
+
+TEST_CASE("readonly test") {
+  string fname="readonly-test.sqlite3";
+  unlink(fname.c_str());
+
+  {
+    SQLiteWriter sqw(fname);
+    sqw.addValue({{"some", "stuff"}, {"val", 1234.0}});
+  }
+
+  SQLiteWriter ro(fname, SQLWFlag::ReadOnly);
+  auto res = ro.queryT("select * from data where some='stuff'");
+  REQUIRE(res.size() == 1);
+
+  REQUIRE_THROWS_AS(ro.addValue({{"some", "more"}}), std::exception);
+  res = ro.queryT("select count(1) c from data");
+  REQUIRE(res.size() == 1);
+  CHECK(get<int64_t>(res[0]["c"]) == 1);
+  unlink(fname.c_str());
 }
 
 TEST_CASE("test scale") {
