@@ -255,6 +255,9 @@ void SQLiteWriter::addOrReplaceValue(const std::vector<std::pair<const char*, va
 template<typename T>
 void SQLiteWriter::addValueGeneric(const std::string& table, const T& values, bool replace)
 {
+  if(d_flag == SQLWFlag::ReadOnly)
+    throw std::runtime_error("Attempting to write to a read-only database instance");
+  
   std::lock_guard<std::mutex> lock(d_mutex);
   if(!d_db.isPrepared(table) || d_lastreplace[table] != replace || !equal(values.begin(), values.end(),
                                        d_lastsig[table].cbegin(), d_lastsig[table].cend(),

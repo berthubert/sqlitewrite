@@ -334,14 +334,18 @@ TEST_CASE("readonly test") {
     sqw.addValue({{"some", "stuff"}, {"val", 1234.0}});
   }
 
-  SQLiteWriter ro(fname, SQLWFlag::ReadOnly);
-  auto res = ro.queryT("select * from data where some='stuff'");
-  REQUIRE(res.size() == 1);
-
-  REQUIRE_THROWS_AS(ro.addValue({{"some", "more"}}), std::exception);
-  res = ro.queryT("select count(1) c from data");
-  REQUIRE(res.size() == 1);
-  CHECK(get<int64_t>(res[0]["c"]) == 1);
+  {
+    SQLiteWriter ro(fname, SQLWFlag::ReadOnly);
+    auto res = ro.queryT("select * from data where some='stuff'");
+    REQUIRE(res.size() == 1);
+    
+    REQUIRE_THROWS_AS(ro.addValue({{"some", "more"}}), std::exception);
+    res = ro.queryT("select count(1) c from data");
+    REQUIRE(res.size() == 1);
+    CHECK(get<int64_t>(res[0]["c"]) == 1);
+    
+    REQUIRE_THROWS_AS(ro.query("insert into data (some, val) values('blah', 123)"), std::exception);
+  }
   unlink(fname.c_str());
 }
 

@@ -59,7 +59,6 @@ private:
   bool haveTable(const std::string& table);
 };
 
-
 class SQLiteWriter
 {
 public:
