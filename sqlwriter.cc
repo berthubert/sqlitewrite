@@ -4,6 +4,15 @@
 #include "sqlite3.h"
 using namespace std;
 
+static string quoteTableName(const std::string& table)
+{
+  auto pos = table.find('.');
+  if(pos == string::npos) 
+    return "\""+ table +"\"";
+  else
+    return "\"" + table.substr(0, pos) + "\".\"" + table.substr(pos + 1)+"\"";
+}
+
 MiniSQLite::MiniSQLite(std::string_view fname, SQLWFlag flag)
 {
   int flags;
@@ -18,6 +27,9 @@ MiniSQLite::MiniSQLite(std::string_view fname, SQLWFlag flag)
   sqlite3_extended_result_codes(d_sqlite, 1);
   exec("PRAGMA journal_mode='wal'");
   exec("PRAGMA foreign_keys=ON");
+  // keeps us honest about "table" and 'string literals'
+  sqlite3_db_config(d_sqlite, SQLITE_DBCONFIG_DQS_DDL, 0, (void*)0);
+  sqlite3_db_config(d_sqlite, SQLITE_DBCONFIG_DQS_DML, 0, (void*)0);
   sqlite3_busy_timeout(d_sqlite, 60000);
 }
 
@@ -25,8 +37,19 @@ MiniSQLite::MiniSQLite(std::string_view fname, SQLWFlag flag)
 vector<pair<string,string> > MiniSQLite::getSchema(const std::string& table)
 {
   vector<pair<string,string>> ret;
-  
-  auto rows = exec("SELECT cid,name,type FROM pragma_table_xinfo('"+table+"')");
+
+  string schema = "main";
+  string tablename;
+  auto pos = table.find('.');
+  if(pos == string::npos) {
+    tablename = table;
+  }
+  else {
+    schema = table.substr(0, pos); 
+    tablename = table.substr(pos +1);
+  }
+
+  auto rows = exec("SELECT cid,name,type FROM pragma_table_xinfo('"+tablename+"', '"+schema+"')");
 
   for(const auto& r : rows) {
     ret.push_back({r[1], r[2]});
@@ -35,7 +58,7 @@ vector<pair<string,string> > MiniSQLite::getSchema(const std::string& table)
     return a.first < b.first;
   });
 
-  //  cout<<"returning "<<ret.size()<<" rows for table "<<table<<"\n";
+  //  cout<<"returning "<<ret.size()<<" rows for table "<<tablename<<" in schema "<<schema<<"\n";
   return ret;
 }
 
@@ -229,13 +252,12 @@ void MiniSQLite::addColumn(const string& table, string_view name, string_view ty
   
   if(!haveTable(table)) {
 #if SQLITE_VERSION_NUMBER >= 3037001
-    exec("create table if not exists '"+table+"' ( '"+(string)name+"' "+(string)type+" "+meta+") STRICT");
+    exec("create table if not exists "+quoteTableName(table)+" ( '"+(string)name+"' "+(string)type+" "+meta+") STRICT");
 #else
-    exec("create table if not exists '"+table+"' ( '"+(string)name+"' "+(string)type+" "+ meta+")");
+    exec("create table if not exists "+quoteTableName(table)+" ( '"+(string)name+"' "+(string)type+" "+ meta+")");
 #endif
   } else {
-    //    cout<<"Adding column "<<name<<" to table "<<table<<endl;
-    exec("ALTER table \""+table+"\" add column \""+string(name)+ "\" "+string(type)+ " "+meta);
+    exec("ALTER table "+quoteTableName(table)+" add column \""+string(name)+ "\" "+string(type)+ " "+meta);
   }
 }
 
@@ -308,7 +330,7 @@ void SQLiteWriter::addValueGeneric(const std::string& table, const T& values, bo
     return a.first == b;
   })) {
     //    cout<<"Starting a new prepared statement"<<endl;
-    string q = string("insert ") + (replace ? "or replace " : "") + "into '"+ table+"' (";
+    string q = string("insert ") + (replace ? "or replace " : "") + "into "+ quoteTableName(table)+" (";
     string qmarks;
     bool first=true;
     for(const auto& p : values) {

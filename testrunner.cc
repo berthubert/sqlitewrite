@@ -395,3 +395,24 @@ TEST_CASE("timeout test") {
 
   REQUIRE_THROWS_AS(sqw.queryT("select * from one,two", {}, 1234), std::runtime_error);
 }
+
+TEST_CASE("memory database") {
+  unlink("testrunner-example.sqlite3");
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+
+  sqw.addValue({{"id", 234}}, "testtabel");
+  auto rows = sqw.queryT("select * from testtabel");
+
+  CHECK(rows.size() == 1);
+  auto out = get<int64_t>(rows[0]["id"]); 
+  CHECK(out == 234);
+  
+  sqw.queryT("ATTACH DATABASE ':memory:' AS aux1");
+
+  sqw.addValue({{"id", 1}}, "aux1.testtabel");
+  rows = sqw.queryT("select * from aux1.testtabel");
+
+  CHECK(rows.size() == 1);
+  out = get<int64_t>(rows[0]["id"]); 
+  CHECK(out == 1);
+}
