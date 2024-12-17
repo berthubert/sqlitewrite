@@ -148,14 +148,14 @@ void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_m
     rows->clear();
 
   DeadlineCatcher dc(d_sqlite, msec); // noop if msec = 0
-  
-  std::unordered_map<string, outvar_t> row;
+
   for(;;) {
     rc = sqlite3_step(d_stmts[table]); 
     if(rc == SQLITE_DONE)
       break;
     else if(rows && rc == SQLITE_ROW) {
-      row.clear();
+      std::unordered_map<string, outvar_t>& row = rows->emplace_back();
+
       for(int n = 0 ; n < sqlite3_column_count(d_stmts[table]);++n) {
         int type = sqlite3_column_type(d_stmts[table], n);
         
@@ -184,9 +184,7 @@ void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_m
         else if(type == SQLITE_NULL) {
           row[sqlite3_column_name(d_stmts[table], n)]= nullptr;
         }
-        
       }
-      rows->push_back(row);
     }
     else {
       sqlite3_reset(d_stmts[table]);
@@ -365,7 +363,7 @@ std::vector<std::unordered_map<std::string, std::string>> SQLiteWriter::query(co
   auto res = queryGen(q, values);
   std::vector<std::unordered_map<std::string, std::string>> ret;
   for(const auto& rowin : res) {
-    std::unordered_map<std::string, std::string> rowout;
+    std::unordered_map<std::string, std::string>& rowout = ret.emplace_back();
     for(const auto& f : rowin) {
       string str;
       std::visit([&str](auto&& arg) {
@@ -380,7 +378,6 @@ std::vector<std::unordered_map<std::string, std::string>> SQLiteWriter::query(co
       }, f.second);
       rowout[f.first] = str;
     }
-    ret.push_back(rowout);
   }
   return ret;
 }
