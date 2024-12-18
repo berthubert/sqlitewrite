@@ -21,7 +21,7 @@ MiniSQLite::MiniSQLite(std::string_view fname, SQLWFlag flag)
   else
     flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
   
-  if ( sqlite3_open_v2(&fname[0], &d_sqlite, flags, 0)!=SQLITE_OK) {
+  if (sqlite3_open_v2(string(fname).c_str(), &d_sqlite, flags, 0) != SQLITE_OK) {
     throw runtime_error("Unable to open "+(string)fname+" for sqlite");
   }
   sqlite3_extended_result_codes(d_sqlite, 1);
@@ -78,7 +78,7 @@ vector<vector<string>> MiniSQLite::exec(std::string_view str)
   std::string errstr;
   //  int (*callback)(void*,int,char**,char**)
   d_rows.clear();
-  int rc = sqlite3_exec(d_sqlite, &str[0], helperFunc, this, &errmsg);
+  int rc = sqlite3_exec(d_sqlite, string(str).c_str(), helperFunc, this, &errmsg);
   if (rc != SQLITE_OK) {
     errstr = errmsg;
     sqlite3_free(errmsg);
@@ -119,7 +119,7 @@ void MiniSQLite::prepare(const std::string& table, string_view str)
   }
   const char* pTail;
   
-  if (sqlite3_prepare_v2(d_sqlite, &str[0], -1, &d_stmts[table], &pTail ) != SQLITE_OK) {
+  if (sqlite3_prepare_v2(d_sqlite, str.data(), (int)str.size(), &d_stmts[table], &pTail) != SQLITE_OK) {
     throw runtime_error("Unable to prepare query "+(string)str + ": "+sqlite3_errmsg(d_sqlite));
   }
 }
