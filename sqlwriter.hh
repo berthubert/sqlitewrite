@@ -55,7 +55,7 @@ private:
   std::unordered_map<std::string, sqlite3_stmt*> d_stmts;
   std::vector<std::vector<std::string>> d_rows; // for exec()
   static int helperFunc(void* ptr, int cols, char** colvals, char** colnames);
-  bool d_intransaction{false};
+  bool inTransaction();
   bool haveTable(const std::string& table);
 };
 

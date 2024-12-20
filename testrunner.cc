@@ -349,6 +349,62 @@ TEST_CASE("readonly test") {
   unlink(fname.c_str());
 }
 
+TEST_CASE("MiniSQLite destructor commits") {
+  const char* name = "testrunner-dtor.sqlite3";
+
+  unlink(name);
+
+  {
+    MiniSQLite ms(name);
+    ms.begin();
+    ms.exec("create table top (role, playing, game)");
+    ms.exec("insert into top values ('d', '&', 'd')");
+  }
+
+  {
+    MiniSQLite ms(name);
+    CHECK(ms.exec("select count(*) from top").at(0).at(0) == "1");
+  }
+
+  unlink(name);
+}
+
+TEST_CASE("MiniSQLite destructor commit failure is ignored") {
+  const char* name = "testrunner-dtor.sqlite3";
+
+  unlink(name);
+
+  {
+    MiniSQLite ms(name);
+    ms.begin();
+    unlink(name);
+  }
+
+  unlink(name);
+}
+
+TEST_CASE("MiniSQLite destructor is not confused by rollback query") {
+  CHECK_NOTHROW([](){
+    MiniSQLite ms(":memory:");
+
+    ms.begin();
+    ms.exec("rollback");
+  }());
+}
+
+TEST_CASE("MiniSQLite destructor is not confused by rollback caused by error") {
+  CHECK_THROWS([](){
+    MiniSQLite ms(":memory:");
+
+    ms.begin();
+    ms.exec("create table foo (bar)");
+    ms.exec("pragma max_page_count=5");
+
+    // error happens here: 'database or disk is full'
+    ms.exec("insert into foo values (zeroblob(1000000))");
+  }());
+}
+
 TEST_CASE("test scale") {
   unlink("testrunner-example.sqlite3");
   {
