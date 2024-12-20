@@ -225,18 +225,21 @@ void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_m
 
 void MiniSQLite::begin()
 {
-  d_intransaction=true;
   exec("begin");
 }
 void MiniSQLite::commit()
 {
-  d_intransaction=false;
   exec("commit");
 }
 
 void MiniSQLite::cycle()
 {
   exec("commit;begin");
+}
+
+bool MiniSQLite::inTransaction()
+{
+  return sqlite3_get_autocommit(d_sqlite) == 0;
 }
 
 bool MiniSQLite::haveTable(const string& table)
@@ -437,8 +440,14 @@ vector<std::unordered_map<string, MiniSQLite::outvar_t>> SQLiteWriter::queryGen(
 MiniSQLite::~MiniSQLite()
 {
   // needs to close down d_sqlite3
-  if(d_intransaction)
-    commit();
+  if(inTransaction()) {
+    try {
+      commit();
+    } catch (std::runtime_error &e) {
+      // don't have a good way to report e
+      // transaction will be rolled back instead
+    }
+  }
 
   for(auto& stmt: d_stmts)
     if(stmt.second)
