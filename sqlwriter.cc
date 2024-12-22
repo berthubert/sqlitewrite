@@ -239,6 +239,16 @@ void MiniSQLite::cycle()
   exec("commit;begin");
 }
 
+MiniSQLite::lock_guard::lock_guard(MiniSQLite& dt) : d_target(dt)
+{
+  sqlite3_mutex_enter(sqlite3_db_mutex(d_target.d_sqlite));
+}
+
+MiniSQLite::lock_guard::~lock_guard()
+{
+  sqlite3_mutex_leave(sqlite3_db_mutex(d_target.d_sqlite));
+}
+
 bool MiniSQLite::haveTable(const string& table)
 {
   return !getSchema(table).empty();
@@ -269,7 +279,7 @@ void SQLiteWriter::commitThread()
   while(!d_pleasequit) {
     usleep(50000);
     if(!(n%20)) {
-      std::lock_guard<std::mutex> lock(d_mutex);
+      MiniSQLite::lock_guard lock(d_db);
       d_db.cycle();
     }
     n++;
@@ -322,7 +332,7 @@ void SQLiteWriter::addValueGeneric(const std::string& table, const T& values, bo
   if(d_flag == SQLWFlag::ReadOnly)
     throw std::runtime_error("Attempting to write to a read-only database instance");
   
-  std::lock_guard<std::mutex> lock(d_mutex);
+  MiniSQLite::lock_guard lock(d_db);
   if(!d_db.isPrepared(table) || d_lastreplace[table] != replace || !equal(values.begin(), values.end(),
                                        d_lastsig[table].cbegin(), d_lastsig[table].cend(),
                             [](const auto& a, const auto& b)
@@ -418,7 +428,7 @@ vector<std::unordered_map<string, MiniSQLite::outvar_t>> SQLiteWriter::queryGen(
   if(msec && d_flag != SQLWFlag::ReadOnly)
     throw std::runtime_error("Timeout only possible for read-only connections");
   
-  std::lock_guard<std::mutex> lock(d_mutex);
+  MiniSQLite::lock_guard lock(d_db);
   d_db.prepare("", q); // we use an empty table name so as not to collide with other things
   int n = 1;
   for(const auto& p : values) {
