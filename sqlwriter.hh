@@ -49,6 +49,8 @@ public:
     else
       return iter->second != nullptr;
   }
+  bool haveTable(const std::string& table);
+  bool haveColumn(const std::string& table, const std::string &column);
 
 private:
   sqlite3* d_sqlite;
@@ -56,7 +58,6 @@ private:
   std::vector<std::vector<std::string>> d_rows; // for exec()
   static int helperFunc(void* ptr, int cols, char** colvals, char** colnames);
   bool d_intransaction{false};
-  bool haveTable(const std::string& table);
 };
 
 class SQLiteWriter
@@ -115,7 +116,6 @@ private:
   std::mutex d_mutex;  
   MiniSQLite d_db;
   SQLWFlag d_flag{SQLWFlag::NoFlag};
-  std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> d_columns;
   std::unordered_map<std::string, std::vector<std::string>> d_lastsig;
   std::unordered_map<std::string, bool> d_lastreplace;
   std::map<std::string, std::map<std::string, std::string>> d_meta;

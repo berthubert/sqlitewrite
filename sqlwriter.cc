@@ -241,7 +241,12 @@ void MiniSQLite::cycle()
 
 bool MiniSQLite::haveTable(const string& table)
 {
-  return !getSchema(table).empty();
+  return sqlite3_table_column_metadata(d_sqlite, nullptr, table.c_str(), nullptr, nullptr, nullptr, nullptr, nullptr, nullptr) == SQLITE_OK;
+}
+
+bool MiniSQLite::haveColumn(const string& table, const string& column)
+{
+  return sqlite3_table_column_metadata(d_sqlite, nullptr, table.c_str(), column.c_str(), nullptr, nullptr, nullptr, nullptr, nullptr) == SQLITE_OK;
 }
 
 
@@ -279,18 +284,7 @@ void SQLiteWriter::commitThread()
 
 bool SQLiteWriter::haveColumn(const std::string& table, std::string_view name)
 {
-  if(d_columns[table].empty()) {
-    d_columns[table] = d_db.getSchema(table);
-  }
-  //  cout<<"Do we have column "<<name<<" in table "<<table<<endl;
-  // this could be more efficient somehow
-  pair<string, string> cmp{name, std::string()};
-  return binary_search(d_columns[table].begin(), d_columns[table].end(), cmp,
-                       [](const auto& a, const auto& b)
-                       {
-                         return a.first < b.first;
-                       });
-
+  return d_db.haveColumn(table, string(name));
 }
 
 
@@ -337,22 +331,16 @@ void SQLiteWriter::addValueGeneric(const std::string& table, const T& values, bo
       if(!haveColumn(table, p.first)) {
         if(std::get_if<double>(&p.second)) {
           d_db.addColumn(table, p.first, "REAL", d_meta[table][p.first]);
-          d_columns[table].push_back({p.first, "REAL"});
         }
         else if(std::get_if<string>(&p.second)) {
           d_db.addColumn(table, p.first, "TEXT", d_meta[table][p.first]);
-          d_columns[table].push_back({p.first, "TEXT"});
         }
         else if(std::get_if<vector<uint8_t>>(&p.second)) {
           d_db.addColumn(table, p.first, "BLOB", d_meta[table][p.first]);
-          d_columns[table].push_back({p.first, "BLOB"});
         }
         else  {
           d_db.addColumn(table, p.first, "INT", d_meta[table][p.first]);
-          d_columns[table].push_back({p.first, "INT"});
         }
-
-        sort(d_columns[table].begin(), d_columns[table].end());
       }
       if(!first) {
         q+=", ";
