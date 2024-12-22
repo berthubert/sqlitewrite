@@ -3,7 +3,6 @@
 #include <vector>
 #include <unordered_map>
 #include <variant>
-#include <mutex>
 #include <thread>
 #include <iostream>
 #include <map>
@@ -49,6 +48,13 @@ public:
     else
       return iter->second != nullptr;
   }
+
+  struct lock_guard {
+    lock_guard(MiniSQLite&);
+    ~lock_guard();
+  private:
+    MiniSQLite& d_target;
+  };
 
 private:
   sqlite3* d_sqlite;
@@ -112,7 +118,6 @@ private:
   void commitThread();
   bool d_pleasequit{false};
   std::optional<std::thread> d_thread;
-  std::mutex d_mutex;  
   MiniSQLite d_db;
   SQLWFlag d_flag{SQLWFlag::NoFlag};
   std::unordered_map<std::string, std::vector<std::pair<std::string, std::string>>> d_columns;
