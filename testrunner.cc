@@ -158,6 +158,60 @@ TEST_CASE("test queries typed") {
   unlink("testrunner-example.sqlite3");
 }
 
+TEST_CASE("test multiple") {
+  unlink("testrunner-luke.sqlite3");
+
+  {
+    SQLiteWriter a("testrunner-luke.sqlite3");
+    SQLiteWriter b("testrunner-luke.sqlite3");
+
+    a.addValue({{"dalton", "joe"}});
+    b.addValue({{"dalton", "william"}});
+    a.addValue({{"dalton", "jack"}});
+    b.addValue({{"dalton", "averell"}});
+  }
+
+  unlink("testrunner-luke.sqlite3");
+}
+
+TEST_CASE("test column name case") {
+  unlink("testrunner-tintin.sqlite3");
+
+  {
+    SQLiteWriter sqw("testrunner-tintin.sqlite3");
+
+    sqw.addValue({{"name", "tintin"}});
+    sqw.addValue({{"Name", "Snowy"}});
+    sqw.addValue({{"NAME", "CAPTAIN HADDOCK"}});
+  }
+
+  {
+    SQLiteWriter sqw("testrunner-tintin.sqlite3");
+
+    auto res = sqw.query("select name from data order by rowid");
+    CHECK(res.size() == 3);
+    CHECK(res.at(0).at("name") == "tintin");
+    CHECK(res.at(1).at("name") == "Snowy");
+    CHECK(res.at(2).at("name") == "CAPTAIN HADDOCK");
+  }
+
+  unlink("testrunner-tintin.sqlite3");
+}
+
+TEST_CASE("test table name case") {
+  unlink("testrunner-ao.sqlite3");
+
+  {
+    SQLiteWriter sqw("testrunner-ao.sqlite3");
+
+    sqw.addValue({{"name", "Asterix"}}, "a");
+    sqw.addValue({{"name", "Obelix"}}, "a");
+    sqw.addValue({{"name", "Getafix"}}, "A");
+    sqw.addValue({{"name", "Vitalstatistix"}}, "A");
+  }
+
+  unlink("testrunner-ao.sqlite3");
+}
 
 TEST_CASE("test meta") {
   unlink("testrunner-example.sqlite3");
