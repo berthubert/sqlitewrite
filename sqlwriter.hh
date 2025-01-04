@@ -7,6 +7,7 @@
 #include <thread>
 #include <iostream>
 #include <map>
+#include <atomic>
 #include <optional>
 struct sqlite3;
 struct sqlite3_stmt;
@@ -49,7 +50,8 @@ public:
     else
       return iter->second != nullptr;
   }
-
+  static std::atomic<uint64_t> s_execs, s_sorts, s_fullscans, s_autoindexes;
+  
 private:
   sqlite3* d_sqlite;
   std::unordered_map<std::string, sqlite3_stmt*> d_stmts;

@@ -4,6 +4,8 @@
 #include "sqlite3.h"
 using namespace std;
 
+std::atomic<uint64_t> MiniSQLite::s_execs, MiniSQLite::s_sorts, MiniSQLite::s_fullscans, MiniSQLite::s_autoindexes;
+
 static string quoteTableName(const std::string& table)
 {
   auto pos = table.find('.');
@@ -30,6 +32,8 @@ MiniSQLite::MiniSQLite(std::string_view fname, SQLWFlag flag)
   // keeps us honest about "table" and 'string literals'
   sqlite3_db_config(d_sqlite, SQLITE_DBCONFIG_DQS_DDL, 0, (void*)0);
   sqlite3_db_config(d_sqlite, SQLITE_DBCONFIG_DQS_DML, 0, (void*)0);
+
+  
   sqlite3_busy_timeout(d_sqlite, 60000);
 }
 
@@ -217,6 +221,11 @@ void MiniSQLite::execPrep(const std::string& table, std::vector<std::unordered_m
       throw runtime_error("Sqlite error "+std::to_string(rc)+": "+sqlite3_errstr(rc));
     }
   }
+  s_fullscans += sqlite3_stmt_status(d_stmts[table], SQLITE_STMTSTATUS_FULLSCAN_STEP, true);
+  s_sorts += sqlite3_stmt_status(d_stmts[table], SQLITE_STMTSTATUS_SORT, true);
+  s_autoindexes += sqlite3_stmt_status(d_stmts[table], SQLITE_STMTSTATUS_AUTOINDEX, true);
+  s_execs++;
+  
   rc= sqlite3_reset(d_stmts[table]);
   if(rc != SQLITE_OK)
     throw runtime_error("Sqlite error "+std::to_string(rc)+": "+sqlite3_errstr(rc));
@@ -417,7 +426,7 @@ vector<std::unordered_map<string, MiniSQLite::outvar_t>> SQLiteWriter::queryGen(
 {
   if(msec && d_flag != SQLWFlag::ReadOnly)
     throw std::runtime_error("Timeout only possible for read-only connections");
-  
+
   std::lock_guard<std::mutex> lock(d_mutex);
   d_db.prepare("", q); // we use an empty table name so as not to collide with other things
   int n = 1;
