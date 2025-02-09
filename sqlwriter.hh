@@ -14,7 +14,7 @@ struct sqlite3_stmt;
 
 enum class SQLWFlag
 {
-  NoFlag, ReadOnly
+  NoFlag, ReadOnly, NoTransactions
 };
 
 
@@ -71,7 +71,7 @@ public:
 			SQLWFlag flag = SQLWFlag::NoFlag) : d_db(fname, flag), d_flag(flag)
   {
     d_db.exec("PRAGMA journal_mode='wal'");
-    if(flag != SQLWFlag::ReadOnly) {
+    if(flag != SQLWFlag::ReadOnly && flag != SQLWFlag::NoTransactions) {
       d_db.begin(); // open the transaction
       d_thread = std::thread(&SQLiteWriter::commitThread, this);
     }

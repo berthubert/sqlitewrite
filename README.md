@@ -105,6 +105,18 @@ From the unit tests:
 
 In readonly mode, you can also pass an extra field to queryT, specifying how many milliseconds the query should be allowed to run. An exception is thrown if this time period is exceeded.
 
+## NoTransactions
+When SQLiteWriter is used for bulk data imports, the transaction mode works
+very well and presents a massive speedup.
+
+When doing occasional reads and writes however the transactions can cause
+locking problems and SQLITE_BUSY errors because of sqlite's transaction
+model. 
+
+By setting the SQLWFlag::NoTransactions, no transactions are opened and
+closed. This also means no thread is created for managing these
+transactions.
+
 ## JSON helper
 It is often convenient to turn your query results into JSON. The helpers `packResultJson` and `packResultJsonStr` in `jsonhelper.cc` benefit from the typesafety provided by `queryT` to create JSON that knows that 1.0 is not "1.0":
 

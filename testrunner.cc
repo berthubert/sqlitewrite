@@ -380,6 +380,39 @@ TEST_CASE("test scale") {
   unlink("testrunner-example.sqlite3");
 }
 
+TEST_CASE("test scale NoTransactions") {
+  unlink("testrunner-example.sqlite3");
+  {
+    SQLiteWriter sqw("testrunner-example.sqlite3", SQLWFlag::NoTransactions);
+    //    sqw.query("pragma synchronous=off");
+    for(int n=0; n < 1000; ++n) {
+      sqw.addValue({{"piefpaf", n}, {"wuh", 1.0*n}, {"wah", std::to_string(n)}});
+      sqw.addValue({{"piefpaf", n}, {"wuh", 1.0*n}, {"wah", std::to_string(n)}}, "metadata");      
+    }
+    sqw.addValue({{"poef", 21}});
+    sqw.addValue({{"poef", 32}}, "metadata");    
+  }
+  MiniSQLite ms("testrunner-example.sqlite3");
+  auto res=ms.exec("select count(1) from data");
+  CHECK(res.size() == 1);
+  CHECK((res[0][0])=="1001");
+
+  res=ms.exec("select count(1) from metadata");
+  CHECK(res.size() == 1);
+  CHECK((res[0][0])=="1001");
+
+  res=ms.exec("select count(poef) from metadata");
+  CHECK(res.size() == 1);
+  CHECK((res[0][0])=="1");
+
+  res=ms.exec("select count(wah) from metadata");
+  CHECK(res.size() == 1);
+  CHECK((res[0][0])=="1000");
+
+  unlink("testrunner-example.sqlite3");
+}
+
+
 TEST_CASE("timeout test") {
   unlink("testrunner-example.sqlite3");
   {
