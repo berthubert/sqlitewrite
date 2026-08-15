@@ -7,6 +7,10 @@ int main(int argc, char *argv[])
 try
 {
   PSQLWriter sqw("");
+
+  sqw.addValue({{"test", 0}});
+  
+  
   for(unsigned n=0; n < 50000; ++n) {
     sqw.addValue({{"test", 1},
                   {"value", 2},

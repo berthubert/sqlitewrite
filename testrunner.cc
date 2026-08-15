@@ -3,8 +3,15 @@
 #include "sqlwriter.hh"
 using namespace std;
 
-TEST_CASE("basic test") {
+static void cleanup()
+{
   unlink("testrunner-example.sqlite3");
+  unlink("testrunner-example.sqlite3-wal");
+  unlink("testrunner-example.sqlite3-shm");
+}
+
+TEST_CASE("basic test") {
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3");
     sqw.addValue({{"pief",1}});
@@ -13,12 +20,12 @@ TEST_CASE("basic test") {
   auto res=ms.exec("select pief from data");
   CHECK(res.size() == 1);
   CHECK((res[0][0])=="1");
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 
 TEST_CASE("other table test") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3");
     sqw.addValue({{"piefpaf", 2}}, "metadata");
@@ -27,11 +34,11 @@ TEST_CASE("other table test") {
   auto res=ms.exec("select piefpaf from metadata");
   CHECK(res.size() == 1);
   CHECK((res[0][0])=="2");
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("test add columns") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3");
     sqw.addValue({{"piefpaf", 2}});
@@ -47,11 +54,11 @@ TEST_CASE("test add columns") {
   CHECK(res.size() == 1);
   CHECK((res[0][0])=="6");
   CHECK((res[0][1])=="1.02");
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("test multiple tables") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3");
     sqw.addValue({{"piefpaf", 2}});
@@ -71,11 +78,11 @@ TEST_CASE("test multiple tables") {
   CHECK((res[0][1])=="32");
 
   
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("test queries") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3");
     sqw.addValue({{"piefpaf", 2}});
@@ -108,11 +115,11 @@ TEST_CASE("test queries") {
   CHECK(res.size() == 1);
   CHECK(res[0]["s"]=="32");
   
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("test queries typed") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3");
     sqw.addValue({{"piefpaf", 2}});
@@ -155,12 +162,12 @@ TEST_CASE("test queries typed") {
   CHECK(res.size() == 1);
   CHECK(get<int64_t>(res[0]["s"])==31);
 
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 
 TEST_CASE("test meta") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3", {{"piefpaf", "collate nocase"}});
     sqw.addValue({{"piefpaf", "Guus"}, {"poef", "guus"}});
@@ -175,11 +182,11 @@ TEST_CASE("test meta") {
   CHECK(res.size() == 1);
   CHECK(res[0]["c"]=="0");
   
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("test meta non-default table") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3", {{"second", {{"piefpaf", "collate nocase"}}}});
     sqw.addValue({{"piefpaf", "Guus"}, {"poef", "guus"}}, "second");
@@ -203,11 +210,11 @@ TEST_CASE("test meta non-default table") {
   REQUIRE(res2.size() == 1);
   CHECK(get<int64_t>(res2[0]["c"]) == 1);
   
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("8 bit safe string") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   string bit8;
   for(int n=255; n; --n) {
     bit8.append(1, (char)n);
@@ -223,11 +230,11 @@ TEST_CASE("8 bit safe string") {
 
   res =sqw.queryT("select binarystring as bstr from data");
   CHECK(get<string>(res.at(0).at("bstr")) == bit8);
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("blob test") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   vector<uint8_t> bit8;
   for(int n=128; n; --n) {
     bit8.push_back(n);
@@ -243,11 +250,11 @@ TEST_CASE("blob test") {
   SQLiteWriter sqw("testrunner-example.sqlite3");
   auto res =sqw.queryT("select binblob from data");
   CHECK(get<vector<uint8_t>>(res[0]["binblob"])==bit8);
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("empty blob and string") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   vector<uint8_t> bit8;
   string leer;
   
@@ -260,11 +267,11 @@ TEST_CASE("empty blob and string") {
   CHECK(get<string>(res[0]["str"])==leer);
   CHECK(get<vector<uint8_t>>(res[0]["vec"])==bit8);
 
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("deal with constraint error") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   SQLiteWriter sqw("testrunner-example.sqlite3", {{"user", "UNIQUE"}});
   sqw.addValue({{"user", "ahu"}, {"test", 1}});
   
@@ -274,12 +281,12 @@ TEST_CASE("deal with constraint error") {
   // to subsequent bogus violations of constraints
   sqw.addValue({{"user", "ahu2"}, {"test", 1}});
   sqw.addValue({{"user", "ahu3"}, {"test", 1}});
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 
 TEST_CASE("test foreign keys") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   SQLiteWriter sqw("testrunner-example.sqlite3",
                    {
                      {"posts", {{"id", "PRIMARY KEY NOT NULL"}} },
@@ -350,7 +357,7 @@ TEST_CASE("readonly test") {
 }
 
 TEST_CASE("test scale") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3");
     for(int n=0; n < 100000; ++n) {
@@ -377,11 +384,11 @@ TEST_CASE("test scale") {
   CHECK(res.size() == 1);
   CHECK((res[0][0])=="100000");
 
-  unlink("testrunner-example.sqlite3");
+  cleanup();
 }
 
 TEST_CASE("test scale NoTransactions") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3", SQLWFlag::NoTransactions);
     //    sqw.query("pragma synchronous=off");
@@ -409,12 +416,33 @@ TEST_CASE("test scale NoTransactions") {
   CHECK(res.size() == 1);
   CHECK((res[0][0])=="1000");
 
-  unlink("testrunner-example.sqlite3");
+  cleanup();
+}
+
+TEST_CASE("vector form of addValue") {
+  cleanup();
+  SQLiteWriter sqw("testrunner-example.sqlite3");
+
+  std::vector<std::pair<string, SQLiteWriter::var_t>> inp {
+    {"val", 1.0}, {"temp", 273.15}, {"pief", "poef"}
+  };
+
+  sqw.addValue(inp);
+  inp[2].second = nullptr;  // pief is out
+
+  inp.emplace_back("teller", 12);
+  sqw.addValue(inp);
+
+  auto res = sqw.queryT("select * from data where pief='poef'");
+  CHECK(get<nullptr_t>(res[0]["teller"])==nullptr);
+
+  res = sqw.queryT("select * from data where teller=12");
+  CHECK(get<nullptr_t>(res[0]["pief"])==nullptr);
 }
 
 
 TEST_CASE("timeout test") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   {
     SQLiteWriter sqw("testrunner-example.sqlite3");
     for(int n=0; n < 1000; ++n) {
@@ -430,7 +458,7 @@ TEST_CASE("timeout test") {
 }
 
 TEST_CASE("memory database") {
-  unlink("testrunner-example.sqlite3");
+  cleanup();
   SQLiteWriter sqw("testrunner-example.sqlite3");
 
   sqw.addValue({{"id", 234}}, "testtabel");

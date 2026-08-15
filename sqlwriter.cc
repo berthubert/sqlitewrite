@@ -106,6 +106,7 @@ void MiniSQLite::bindPrep(const std::string& table, int idx, unsigned long value
 void MiniSQLite::bindPrep(const std::string& table, int idx, long long value) {   checkBind(sqlite3_bind_int64(d_stmts[table], idx, value));   }
 void MiniSQLite::bindPrep(const std::string& table, int idx, unsigned long long value) {   checkBind(sqlite3_bind_int64(d_stmts[table], idx, value));   }
 void MiniSQLite::bindPrep(const std::string& table, int idx, double value) {   checkBind(sqlite3_bind_double(d_stmts[table], idx, value));   }
+void MiniSQLite::bindPrep(const std::string& table, int idx, nullptr_t value) {   checkBind(sqlite3_bind_null(d_stmts[table], idx));   }
 void MiniSQLite::bindPrep(const std::string& table, int idx, const std::string& value) {   checkBind(sqlite3_bind_text(d_stmts[table], idx, value.c_str(), value.size(), SQLITE_TRANSIENT));   }
 void MiniSQLite::bindPrep(const std::string& table, int idx, const std::vector<uint8_t>& value) {
   if(value.empty())
@@ -303,27 +304,25 @@ bool SQLiteWriter::haveColumn(const std::string& table, std::string_view name)
 }
 
 
-void SQLiteWriter::addValue(const initializer_list<std::pair<const char*, var_t>>& values, const std::string& table)
+void SQLiteWriter::addValue(const initializer_list<std::pair<string, var_t>>& values, const std::string& table)
 {
   addValueGeneric(table, values);
 }
 
-void SQLiteWriter::addValue(const std::vector<std::pair<const char*, var_t>>& values, const std::string& table)
+void SQLiteWriter::addValue(const std::vector<std::pair<string, var_t>>& values, const std::string& table)
 {
   addValueGeneric(table, values);
 }
 
-void SQLiteWriter::addOrReplaceValue(const initializer_list<std::pair<const char*, var_t>>& values, const std::string& table)
+void SQLiteWriter::addOrReplaceValue(const initializer_list<std::pair<string, var_t>>& values, const std::string& table)
 {
   addValueGeneric(table, values, true);
 }
 
-void SQLiteWriter::addOrReplaceValue(const std::vector<std::pair<const char*, var_t>>& values, const std::string& table)
+void SQLiteWriter::addOrReplaceValue(const std::vector<std::pair<string, var_t>>& values, const std::string& table)
 {
   addValueGeneric(table, values, true);
 }
-
-
 
 template<typename T>
 void SQLiteWriter::addValueGeneric(const std::string& table, const T& values, bool replace)
