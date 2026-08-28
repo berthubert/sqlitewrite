@@ -6,7 +6,7 @@ using namespace std;
 
 MiniPSQL::MiniPSQL(std::string_view fname)
 {
-  d_conn = PQconnectdb(&fname[0]);
+  d_conn = PQconnectdb(string(fname).c_str());
   if (PQstatus(d_conn) != CONNECTION_OK) {
     throw std::runtime_error("Error connecting to postgresql: "+ string(PQerrorMessage(d_conn)));
   }  
